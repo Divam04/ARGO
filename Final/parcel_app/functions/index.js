@@ -86,14 +86,14 @@ exports.sendEmail = functions.firestore
             port: 465,
             secure: true,
             auth: {
-                user: 'argo.notify@gmail.com',
-                pass: 'hwwyibxaayqknodn'
+                user: 'guptadivam458@gmail.com',
+                pass: 'ouchcrrexmxvlaog'
             }
         });
 
         try {
             const info = await transporter.sendMail({
-                from: '"Argo Notification" <argo.notify@gmail.com>',
+                from: '"Argo Notification" <guptadivam458@gmail.com>',
                 to: emailData.to,
                 subject: emailData.subject,
                 text: emailData.text,
