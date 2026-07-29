@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'scan_label_screen.dart';
+import 'parcel_details_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -213,9 +215,9 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        // TODO: Navigate to ScanLabelScreen in Phase 2
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Scan Label tapped')),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ScanLabelScreen()),
                         );
                       },
                       child: Container(
@@ -321,9 +323,9 @@ class HomeScreen extends StatelessWidget {
             // ── Enter Manually button (pink accent, bottom half) ──
             GestureDetector(
               onTap: () {
-                // TODO: Navigate to ParcelDetailsScreen (blank) in Phase 2
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter Manually tapped')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ParcelDetailsScreen()),
                 );
               },
               child: Container(
