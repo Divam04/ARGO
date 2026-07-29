@@ -114,11 +114,9 @@ exports.scanLabel = functions.https.onCall(async (data, context) => {
     const base64Image = data.image;
     if (!base64Image) throw new functions.https.HttpsError('invalid-argument', 'Image required');
 
-    const configSnap = await db.collection('config').doc('apiKeys').get();
-    const apiKey = configSnap.data()?.gemini;
-    if (!apiKey) throw new functions.https.HttpsError('failed-precondition', 'Gemini API key not configured in config/apiKeys');
-
-    const ai = new GoogleGenAI({ apiKey });
+    // Use Vertex AI with the Cloud Function's built-in service account — no API key needed!
+    const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
+    const ai = new GoogleGenAI({ vertexai: true, project: projectId, location: 'us-central1' });
     
     try {
         const response = await ai.models.generateContent({
@@ -139,9 +137,9 @@ exports.scanLabel = functions.https.onCall(async (data, context) => {
         
         const extractedData = JSON.parse(responseText);
         return { success: true, data: extractedData };
-    } catch (e) {
-        console.error('Gemini Error:', e);
-        throw new functions.https.HttpsError('internal', 'Failed to scan label with AI', String(e));
+    } catch (error) {
+        console.error('Gemini API Error:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to scan label with AI', error.message || String(error));
     }
 });
 
