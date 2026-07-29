@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Vision OCR Sandbox - Parcel Tracking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-area">
+        <div class="logo-icon">📦</div>
+        <div>
+          <h1>AutoParcel AI Scanner</h1>
+          <p class="subtitle">Interactive OCR Testing Sandbox powered by Google Gemini Vision</p>
+        </div>
+      </div>
+      <div class="badge">Live Sandbox v1.0</div>
+    </header>
+
+    <!-- Config Bar -->
+    <section class="config-bar">
+      <div class="config-item">
+        <label for="apiKey">🔑 Credential:</label>
+        <div class="input-with-btn">
+          <input type="password" id="apiKey" placeholder="Paste ya29... OAuth token or AIzaSy... API key">
+          <button id="toggleKeyBtn" class="icon-btn" title="Toggle visibility">👁️</button>
+        </div>
+      </div>
+      <div class="config-item" style="min-width:200px;flex:0.5;">
+        <label for="projectId">☁️ Project ID:</label>
+        <input type="text" id="projectId" placeholder="e.g. my-project-12345" style="background:rgba(10,12,16,0.8);border:1px solid rgba(255,255,255,0.08);color:#f8fafc;padding:10px 14px;border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;width:100%;">
+      </div>
+      <div class="config-item" style="min-width:150px;flex:0.3;">
+        <label for="regionSelect">🌐 Region:</label>
+        <select id="regionSelect">
+          <option value="us-central1" selected>us-central1</option>
+          <option value="us-east1">us-east1</option>
+          <option value="us-west1">us-west1</option>
+          <option value="europe-west1">europe-west1</option>
+          <option value="asia-southeast1">asia-southeast1</option>
+        </select>
+      </div>
+      <div class="config-item" style="min-width:150px;flex:0.4;">
+        <label for="modelSelect">🤖 Model:</label>
+        <select id="modelSelect">
+          <option value="gemini-2.5-flash" selected>gemini-2.5-flash (Fast & Recommended)</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro (Most Capable)</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Left Column: Input & Capture -->
+      <div class="panel input-panel">
+        <div class="panel-header">
+          <h2>1. Select or Capture Shipping Label</h2>
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="presets">⚡ Built-in Presets</button>
+            <button class="tab-btn" data-tab="upload">📁 Upload / Drop</button>
+            <button class="tab-btn" data-tab="webcam">📸 Webcam</button>
+          </div>
+        </div>
+
+        <!-- Tab Content: Presets -->
+        <div class="tab-content active" id="tab-presets">
+          <p class="section-desc">Click any generated shipping label below to instantly load and test it:</p>
+          <div class="preset-grid">
+            <button class="preset-card" data-preset="amazon">
+              <span class="preset-tag bg-blue">Amazon Prime</span>
+              <h4>Amazon AWB Slip</h4>
+              <p>Standard barcode, Room 302, Plaksha Campus</p>
+            </button>
+            <button class="preset-card" data-preset="bluedart">
+              <span class="preset-tag bg-orange">BlueDart Express</span>
+              <h4>BlueDart Air Waybill</h4>
+              <p>Tracking #BD-9823719, Gate 1 Delivery</p>
+            </button>
+            <button class="preset-card" data-preset="dhl">
+              <span class="preset-tag bg-yellow">DHL Express</span>
+              <h4>DHL International</h4>
+              <p>WAYBILL 442-9910-22, High density text</p>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab Content: Upload -->
+        <div class="tab-content" id="tab-upload">
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-icon">☁️</div>
+            <h3>Drag & Drop shipping label image here</h3>
+            <p>or click to browse from your device</p>
+            <input type="file" id="fileInput" accept="image/*" hidden>
+          </div>
+        </div>
+
+        <!-- Tab Content: Webcam -->
+        <div class="tab-content" id="tab-webcam">
+          <div class="webcam-container">
+            <video id="webcamVideo" autoplay playsinline></video>
+            <canvas id="webcamCanvas" hidden></canvas>
+            <div class="webcam-controls">
+              <button id="startCamBtn" class="btn secondary">Turn On Camera</button>
+              <button id="captureCamBtn" class="btn primary" disabled>📸 Take Snapshot</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Image Preview Area -->
+        <div class="preview-area">
+          <div class="preview-header">
+            <h3>Selected Image Preview</h3>
+            <span id="imageMeta" class="meta-tag">No image selected</span>
+          </div>
+          <div class="preview-box">
+            <img id="imagePreview" src="" alt="Label Preview" class="hidden">
+            <div id="previewPlaceholder" class="placeholder">
+              <p>Select a preset or upload an image above to begin</p>
+            </div>
+          </div>
+          <button id="scanBtn" class="btn action-btn" disabled>
+            <span class="btn-icon">✨</span> Scan Label with Gemini Vision
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Extracted Results -->
+      <div class="panel result-panel">
+        <div class="panel-header">
+          <h2>2. AI Extraction Results</h2>
+          <div class="status-indicator" id="statusBadge">Idle</div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state hidden">
+          <div class="spinner"></div>
+          <h3>Gemini is reading the shipping label...</h3>
+          <p>Extracting recipient, tracking AWB, courier, and contact details via visual understanding.</p>
+          <div class="progress-bar"><div class="progress-fill"></div></div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">📊</div>
+          <h3>No Results Yet</h3>
+          <p>Select an image on the left and click <strong>"Scan Label with Gemini Vision"</strong> to test the AI extraction.</p>
+        </div>
+
+        <!-- Results Display -->
+        <div id="resultsDisplay" class="results-display hidden">
+          <div class="result-toolbar">
+            <span id="timingBadge" class="timing-badge">⚡ Extracted in 0ms</span>
+            <div class="view-toggles">
+              <button class="toggle-btn active" data-view="cards">Structured Cards</button>
+              <button class="toggle-btn" data-view="json">Raw JSON</button>
+            </div>
+          </div>
+
+          <!-- View: Cards -->
+          <div id="viewCards" class="view-section active">
+            <div class="field-grid">
+              <div class="field-card primary-card">
+                <span class="field-label">👤 Recipient Name</span>
+                <div class="field-value" id="valRecipient">-</div>
+              </div>
+              <div class="field-card primary-card">
+                <span class="field-label">🔢 Tracking / AWB Number</span>
+                <div class="field-value font-mono" id="valTracking">-</div>
+              </div>
+              <div class="field-card">
+                <span class="field-label">🚚 Courier Company</span>
+                <div class="field-value" id="valCourier">-</div>
+              </div>
+              <div class="field-card">
+                <span class="field-label">📞 Phone Number</span>
+                <div class="field-value" id="valPhone">-</div>
+              </div>
+              <div class="field-card full-width">
+                <span class="field-label">🏢 Destination / Room Address</span>
+                <div class="field-value" id="valAddress">-</div>
+              </div>
+              <div class="field-card full-width">
+                <span class="field-label">📦 Sender / Merchant Name</span>
+                <div class="field-value" id="valSender">-</div>
+              </div>
+            </div>
+
+            <div class="action-footer">
+              <button id="copyJsonBtn" class="btn secondary">📋 Copy JSON</button>
+              <button id="simulateSubmitBtn" class="btn success">✅ Simulate AutoParcel Intake</button>
+            </div>
+          </div>
+
+          <!-- View: Raw JSON -->
+          <div id="viewJson" class="view-section">
+            <pre><code id="jsonCodeOutput"></code></pre>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

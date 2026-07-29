@@ -1,0 +1,14 @@
+{
+  "name": "gemini-ocr-tester",
+  "version": "1.0.0",
+  "description": "Interactive AI OCR testing sandbox using Google Gemini Vision",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  }
+}
