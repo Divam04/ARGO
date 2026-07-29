@@ -17,8 +17,8 @@ class AppColors {
 
   // ── Surfaces ──
   static const Color surface = Color(0xFFFFFFFF);          // Cards, modals
-  static const Color background = Color(0xFFF5F7F6);       // Page background
-  static const Color border = Color(0xFFE2E6E4);           // Dividers, card borders
+  static const Color background = Color(0xFFF8FAFC);       // Page background
+  static const Color border = Color(0xFFE2E8F0);           // Dividers, card borders
 
   // ── Text ──
   static const Color textPrimary = Color(0xFF1E2833);      // Near-black headings & body
