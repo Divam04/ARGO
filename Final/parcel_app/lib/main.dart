@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'theme/app_theme.dart';
-// import 'firebase_options.dart'; // We'll add this later via flutterfire configure
+import 'firebase_options.dart';
 import 'screens/loading_screen.dart';
 import 'screens/guard_login_screen.dart';
 import 'screens/home_screen.dart';
@@ -9,9 +9,9 @@ import 'screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const ParcelApp());
 }
 

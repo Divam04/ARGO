@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "368781005008",
+    "project_id": "argo-parcel-app-backend",
+    "storage_bucket": "argo-parcel-app-backend.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:368781005008:android:15bd3a175556fb517f4ed5",
+        "android_client_info": {
+          "package_name": "com.example.parcel_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUio7R1G2EiKPclVl-8WLEClDEvq4D1YQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

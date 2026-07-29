@@ -4,8 +4,10 @@ const { parse } = require('csv-parse/sync');
 const nodemailer = require('nodemailer');
 const { GoogleGenAI } = require('@google/genai');
 
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+
 admin.initializeApp();
-const db = admin.firestore();
+const db = getFirestore();
 
 exports.importStudents = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
@@ -99,7 +101,7 @@ exports.sendEmail = functions.firestore
             });
             console.log('Message sent: %s', info.messageId);
             
-            await snap.ref.update({ status: 'sent', sentAt: admin.firestore.FieldValue.serverTimestamp() });
+            await snap.ref.update({ status: 'sent', sentAt: FieldValue.serverTimestamp() });
         } catch (error) {
             console.error('Error sending email:', error);
             await snap.ref.update({ status: 'error', error: String(error) });
@@ -159,7 +161,7 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
         rack,
         pin,
         status: 'STORED',
-        receivedAt: admin.firestore.FieldValue.serverTimestamp()
+        receivedAt: FieldValue.serverTimestamp()
     });
 
     const studentsSnap = await db.collection('students')

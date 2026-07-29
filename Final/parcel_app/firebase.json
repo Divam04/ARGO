@@ -1,0 +1,37 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "argo-parcel-app-backend",
+          "appId": "1:368781005008:android:15bd3a175556fb517f4ed5",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "argo-parcel-app-backend",
+          "configurations": {
+            "android": "1:368781005008:android:15bd3a175556fb517f4ed5",
+            "ios": "1:368781005008:ios:0ee6044bd568bc597f4ed5",
+            "web": "1:368781005008:web:c38ca9454f60dfdd7f4ed5"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs20",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

@@ -50,6 +50,7 @@ class _ScanLabelScreenState extends State<ScanLabelScreen> {
         ),
       );
     } catch (e) {
+      print('CLOUD FUNCTION ERROR: $e');
       if (!mounted) return;
       setState(() => _isProcessing = false);
       
