@@ -28,17 +28,17 @@ class _LoadingScreenState extends State<LoadingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primary,
-      body: const Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.local_shipping_rounded,
-              size: 64,
-              color: AppColors.textOnPrimary,
+            Image.asset(
+              'assets/logo.png',
+              width: 120,
+              height: 120,
             ),
-            SizedBox(height: 24),
-            Text(
+            const SizedBox(height: 24),
+            const Text(
               'Parcel App',
               style: TextStyle(
                 color: AppColors.textOnPrimary,
@@ -47,8 +47,8 @@ class _LoadingScreenState extends State<LoadingScreen> {
                 letterSpacing: -0.5,
               ),
             ),
-            SizedBox(height: 32),
-            SizedBox(
+            const SizedBox(height: 32),
+            const SizedBox(
               width: 32,
               height: 32,
               child: CircularProgressIndicator(

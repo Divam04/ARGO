@@ -56,18 +56,10 @@ class _GuardLoginScreenState extends State<GuardLoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // App icon / logo area
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(
-                        Icons.local_shipping_rounded,
-                        color: AppColors.textOnPrimary,
-                        size: 40,
-                      ),
+                    Image.asset(
+                      'assets/logo.png',
+                      width: 100,
+                      height: 100,
                     ),
                     const SizedBox(height: 24),
                     Text(

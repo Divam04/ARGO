@@ -41,6 +41,7 @@ exports.importStudents = functions.https.onCall(async (data, context) => {
             const studentData = {
                 uid: record.uid || record.id || record.email,
                 name: record.name,
+                nameLower: (record.name || '').trim().toLowerCase(),
                 email: record.email,
                 room: record.room,
                 isActive: true
@@ -143,6 +144,156 @@ exports.scanLabel = functions.https.onCall(async (data, context) => {
     }
 });
 
+exports.resolvePin = functions.https.onCall(async (data, context) => {
+    // if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Not signed in');
+    
+    const { pin, deviceId, guardId } = data;
+    if (!pin || !deviceId || !guardId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing pin, deviceId, or guardId');
+    }
+
+    const maxAttempts = 10;
+    const lockoutMinutes = 2;
+    
+    // Check brute force attempts
+    const attemptRef = db.collection('pinAttempts').doc(deviceId);
+    const attemptDoc = await attemptRef.get();
+    let failedCount = 0;
+    
+    if (attemptDoc.exists) {
+        const attemptData = attemptDoc.data();
+        if (attemptData.lockedUntil && attemptData.lockedUntil.toDate() > new Date()) {
+            throw new functions.https.HttpsError('resource-exhausted', `Device locked out. Try again later.`);
+        }
+        if (attemptData.lockedUntil && attemptData.lockedUntil.toDate() <= new Date()) {
+            // Lockout expired, reset
+            failedCount = 0;
+        } else {
+            failedCount = attemptData.failedCount || 0;
+        }
+    }
+
+    const crypto = require('crypto');
+    const pinHash = crypto.createHash('sha256').update(pin).digest('hex');
+
+    // Find the parcel matching the hash
+    const parcelsSnap = await db.collection('parcels')
+        .where('status', '==', 'stored')
+        .where('pinHash', '==', pinHash)
+        .limit(1)
+        .get();
+
+    if (parcelsSnap.empty) {
+        // Record failed attempt
+        failedCount++;
+        let lockedUntil = null;
+        if (failedCount >= maxAttempts) {
+            lockedUntil = admin.firestore.Timestamp.fromDate(new Date(Date.now() + lockoutMinutes * 60000));
+        }
+        
+        await attemptRef.set({
+            failedCount,
+            lockedUntil,
+            lastGuardId: guardId,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        if (lockedUntil) {
+            throw new functions.https.HttpsError('resource-exhausted', 'Device locked out due to too many failed attempts.');
+        } else {
+            throw new functions.https.HttpsError('not-found', 'Invalid PIN.');
+        }
+    }
+
+    // Success! Reset attempts.
+    if (attemptDoc.exists) {
+        await attemptRef.delete();
+    }
+
+    const parcelDoc = parcelsSnap.docs[0];
+    const parcelData = parcelDoc.data();
+    return {
+        id: parcelDoc.id,
+        deliveryService: parcelData.deliveryService || null,
+        dateOfDelivery: parcelData.receivedAt ? parcelData.receivedAt.toDate().toISOString() : null,
+        recipientName: parcelData.recipientName || parcelData.recipientNameRaw || null,
+        trackingNumber: parcelData.trackingNumber || null,
+        rack: parcelData.rack || parcelData.rackId || null,
+        studentUid: parcelData.studentUid || null
+    };
+});
+
+exports.completeHandover = functions.https.onCall(async (data, context) => {
+    const { parcelId, receiverUid, receiverName, isOwner, verificationMethod, faceMatchScore, guardId } = data;
+    if (!parcelId || !receiverUid || !verificationMethod || !guardId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required fields for handover');
+    }
+
+    const parcelRef = db.collection('parcels').doc(parcelId);
+    
+    await db.runTransaction(async (transaction) => {
+        const parcelDoc = await transaction.get(parcelRef);
+        if (!parcelDoc.exists) throw new functions.https.HttpsError('not-found', 'Parcel not found');
+        const parcel = parcelDoc.data();
+        if (parcel.status !== 'stored') throw new functions.https.HttpsError('failed-precondition', 'Parcel is not stored');
+        
+        const rackRef = db.collection('racks').doc(parcel.rackId);
+        
+        // Update Parcel
+        transaction.update(parcelRef, {
+            status: 'collected',
+            receiverUid,
+            receiverIsOwner: isOwner,
+            collectedByGuardId: guardId,
+            collectedAt: admin.firestore.FieldValue.serverTimestamp(),
+            verificationMethod,
+            faceMatchScore: faceMatchScore || null
+        });
+
+        // Free the rack slot
+        transaction.update(rackRef, {
+            occupied: admin.firestore.FieldValue.increment(-1)
+        });
+
+        // Decrement student parcelsWaiting
+        if (parcel.studentUid) {
+            const studentRef = db.collection('students').doc(parcel.studentUid);
+            transaction.update(studentRef, {
+                parcelsWaiting: admin.firestore.FieldValue.increment(-1)
+            });
+        }
+        
+        // Send email to owner
+        if (parcel.studentUid) {
+            const ownerRef = db.collection('students').doc(parcel.studentUid);
+            const ownerDoc = await transaction.get(ownerRef);
+            if (ownerDoc.exists) {
+                const ownerEmail = ownerDoc.data().email;
+                const emailRef = db.collection('emails').doc();
+                
+                let text = `Your parcel from ${parcel.deliveryService} has been collected.`;
+                if (!isOwner) {
+                   text = `Your parcel from ${parcel.deliveryService} was collected on your behalf by ${receiverName} (${receiverUid}).`;
+                }
+
+                transaction.set(emailRef, {
+                    type: 'COLLECTED',
+                    to: ownerEmail,
+                    subject: 'Parcel collected',
+                    text: text,
+                    html: `<p>${text}</p><br><p>Verification: ${verificationMethod}</p>`,
+                    parcelId: parcelId,
+                    studentUid: parcel.studentUid,
+                    sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                    status: 'queued'
+                });
+            }
+        }
+    });
+
+    return { success: true };
+});
+
 exports.assignRack = functions.https.onCall(async (data, context) => {
     return { success: true, rack: 'A3 - Slot 2' };
 });
@@ -151,6 +302,8 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
     const { deliveryService, recipientName, trackingNumber, rack } = data;
     
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
+    const crypto = require('crypto');
+    const pinHash = crypto.createHash('sha256').update(pin).digest('hex');
     
     const parcelRef = await db.collection('parcels').add({
         deliveryService,
@@ -158,27 +311,64 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
         trackingNumber,
         rack,
         pin,
-        status: 'STORED',
+        pinHash,
+        status: 'stored',
         receivedAt: FieldValue.serverTimestamp()
     });
 
-    const studentsSnap = await db.collection('students')
-        .where('name', '>=', recipientName)
-        .where('name', '<=', recipientName + '\uf8ff')
-        .limit(1)
-        .get();
+    // --- Robust student lookup ---
+    // 1. Try exact case-insensitive match using nameLower field
+    const nameLower = (recipientName || '').trim().toLowerCase();
+    let toEmail = null;
+    
+    if (nameLower) {
+        // First try: exact match on nameLower
+        let studentsSnap = await db.collection('students')
+            .where('nameLower', '==', nameLower)
+            .limit(1)
+            .get();
         
-    let toEmail = 'student@example.com';
-    if (!studentsSnap.empty) {
-        toEmail = studentsSnap.docs[0].data().email;
+        if (!studentsSnap.empty) {
+            toEmail = studentsSnap.docs[0].data().email;
+        }
+
+        // Second try: prefix match on the original name field (case-sensitive fallback)
+        if (!toEmail) {
+            studentsSnap = await db.collection('students')
+                .where('name', '>=', recipientName)
+                .where('name', '<=', recipientName + '\uf8ff')
+                .limit(1)
+                .get();
+            if (!studentsSnap.empty) {
+                toEmail = studentsSnap.docs[0].data().email;
+            }
+        }
+
+        // Third try: fetch ALL students and do a fuzzy contains match
+        if (!toEmail) {
+            const allStudents = await db.collection('students').get();
+            for (const doc of allStudents.docs) {
+                const studentData = doc.data();
+                const studentNameLower = (studentData.name || '').toLowerCase();
+                // Check if either name contains the other (handles partial names from labels)
+                if (studentNameLower.includes(nameLower) || nameLower.includes(studentNameLower)) {
+                    toEmail = studentData.email;
+                    break;
+                }
+            }
+        }
     }
 
-    await db.collection('emails').add({
-        to: toEmail,
-        subject: `Your parcel from ${deliveryService} has arrived!`,
-        text: `Hello ${recipientName},\n\nYour parcel from ${deliveryService} has been stored at the security desk.\n\nYour collection PIN is: ${pin}\n\nPlease collect it at your earliest convenience.`,
-        status: 'pending'
-    });
+    if (!toEmail) {
+        console.warn(`No student found matching name: "${recipientName}". Email will not be sent.`);
+    } else {
+        await db.collection('emails').add({
+            to: toEmail,
+            subject: `Your parcel from ${deliveryService} has arrived!`,
+            text: `Hello ${recipientName},\n\nYour parcel from ${deliveryService} has been stored at the security desk.\n\nYour collection PIN is: ${pin}\n\nPlease collect it at your earliest convenience.`,
+            status: 'pending'
+        });
+    }
 
-    return { success: true, parcelId: parcelRef.id, pin };
+    return { success: true, parcelId: parcelRef.id, pin, emailSentTo: toEmail || 'none' };
 });

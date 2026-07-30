@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'scan_label_screen.dart';
 import 'parcel_details_screen.dart';
+import 'enter_pin_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -128,10 +129,9 @@ class HomeScreen extends StatelessWidget {
   Widget _buildSearchCard(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // This is the handover entry point → Enter PIN screen
-        // TODO: Navigate to EnterPinScreen in Phase 3
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Enter collection code tapped')),
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => EnterPinScreen()),
         );
       },
       child: Container(
@@ -261,9 +261,9 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        // TODO: Start handover flow
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Start Handover tapped')),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => EnterPinScreen()),
                         );
                       },
                       child: Container(

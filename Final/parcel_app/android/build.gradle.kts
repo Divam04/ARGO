@@ -3,6 +3,12 @@ allprojects {
         google()
         mavenCentral()
     }
+    // Force ALL modules (including third-party plugins like onnxruntime) to compile against SDK 36
+    plugins.withId("com.android.library") {
+        extensions.configure<com.android.build.gradle.LibraryExtension> {
+            compileSdk = 36
+        }
+    }
 }
 
 val newBuildDir: Directory =
