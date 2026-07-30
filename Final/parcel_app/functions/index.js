@@ -87,14 +87,14 @@ exports.sendEmail = functions.firestore
             port: 465,
             secure: true,
             auth: {
-                user: 'guptadivam458@gmail.com',
-                pass: 'ouchcrrexmxvlaog'
+                user: 'argo.notify@gmail.com',
+                pass: 'izmcgrywgvojwlru'
             }
         });
 
         try {
             const info = await transporter.sendMail({
-                from: '"Argo Notification" <guptadivam458@gmail.com>',
+                from: '"Argo Notification" <argo.notify@gmail.com>',
                 to: emailData.to,
                 subject: emailData.subject,
                 text: emailData.text,
@@ -219,7 +219,8 @@ exports.resolvePin = functions.https.onCall(async (data, context) => {
         recipientName: parcelData.recipientName || parcelData.recipientNameRaw || null,
         trackingNumber: parcelData.trackingNumber || null,
         rack: parcelData.rack || parcelData.rackId || null,
-        studentUid: parcelData.studentUid || null
+        studentUid: parcelData.studentUid || null,
+        studentName: parcelData.studentName || null
     };
 });
 
@@ -320,6 +321,8 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
     // 1. Try exact case-insensitive match using nameLower field
     const nameLower = (recipientName || '').trim().toLowerCase();
     let toEmail = null;
+    let matchedUid = null;
+    let matchedName = null;
     
     if (nameLower) {
         // First try: exact match on nameLower
@@ -330,6 +333,8 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
         
         if (!studentsSnap.empty) {
             toEmail = studentsSnap.docs[0].data().email;
+            matchedUid = studentsSnap.docs[0].id;
+            matchedName = studentsSnap.docs[0].data().name;
         }
 
         // Second try: prefix match on the original name field (case-sensitive fallback)
@@ -341,6 +346,8 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
                 .get();
             if (!studentsSnap.empty) {
                 toEmail = studentsSnap.docs[0].data().email;
+                matchedUid = studentsSnap.docs[0].id;
+                matchedName = studentsSnap.docs[0].data().name;
             }
         }
 
@@ -353,10 +360,19 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
                 // Check if either name contains the other (handles partial names from labels)
                 if (studentNameLower.includes(nameLower) || nameLower.includes(studentNameLower)) {
                     toEmail = studentData.email;
+                    matchedUid = doc.id;
+                    matchedName = studentData.name;
                     break;
                 }
             }
         }
+    }
+
+    if (matchedUid) {
+        await parcelRef.update({
+            studentUid: matchedUid,
+            studentName: matchedName
+        });
     }
 
     if (!toEmail) {

@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'receiver_search_screen.dart';
 
 class ParcelScreen extends StatelessWidget {
   final Map<String, dynamic> parcelData;
 
   const ParcelScreen({Key? key, required this.parcelData}) : super(key: key);
+
+  String _formatDate(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return 'Unknown';
+    try {
+      final DateTime dt = DateTime.parse(isoString).toLocal();
+      return DateFormat('dd-MM-yyyy hh:mm a').format(dt);
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +48,7 @@ class ParcelScreen extends StatelessWidget {
             children: [
               _buildDetailRow('DELIVERY SERVICE', parcelData['deliveryService'] ?? 'Unknown'),
               const SizedBox(height: 16),
-              _buildDetailRow('DATE OF DELIVERY', parcelData['dateOfDelivery']?.split('T')[0] ?? 'Unknown'),
+              _buildDetailRow('DATE OF DELIVERY', _formatDate(parcelData['dateOfDelivery'])),
               const SizedBox(height: 16),
               _buildDetailRow('NAME ON LABEL', parcelData['recipientName'] ?? 'Unknown'),
               const SizedBox(height: 16),

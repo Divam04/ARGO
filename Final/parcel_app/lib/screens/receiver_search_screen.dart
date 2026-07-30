@@ -67,9 +67,9 @@ class _ReceiverSearchScreenState extends State<ReceiverSearchScreen> {
     List<DocumentSnapshot> matched = [];
     
     for (var doc in allDocs) {
-      final data = doc.data();
-      final name = (data['name'] as String).toLowerCase();
-      final uid = (data['uid'] as String).toLowerCase();
+      final data = doc.data() as Map<String, dynamic>;
+      final name = (data['name']?.toString() ?? '').toLowerCase();
+      final uid = (data['uid']?.toString() ?? doc.id).toLowerCase();
       
       if (uid.contains(qLower) || name.contains(qLower)) {
         matched.add(doc);
@@ -80,10 +80,10 @@ class _ReceiverSearchScreenState extends State<ReceiverSearchScreen> {
     matched.sort((a, b) {
       final dataA = a.data() as Map<String, dynamic>;
       final dataB = b.data() as Map<String, dynamic>;
-      final nameA = (dataA['name'] as String).toLowerCase();
-      final uidA = (dataA['uid'] as String).toLowerCase();
-      final nameB = (dataB['name'] as String).toLowerCase();
-      final uidB = (dataB['uid'] as String).toLowerCase();
+      final nameA = (dataA['name']?.toString() ?? '').toLowerCase();
+      final uidA = (dataA['uid']?.toString() ?? a.id).toLowerCase();
+      final nameB = (dataB['name']?.toString() ?? '').toLowerCase();
+      final uidB = (dataB['uid']?.toString() ?? b.id).toLowerCase();
       
       int scoreA = _getScore(uidA, nameA, qLower);
       int scoreB = _getScore(uidB, nameB, qLower);
@@ -193,7 +193,7 @@ class _ReceiverSearchScreenState extends State<ReceiverSearchScreen> {
         ),
         title: Row(
           children: [
-            Text(data['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(data['name']?.toString() ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
             if (isOwner) ...[
               const SizedBox(width: 8),
               Container(
@@ -207,7 +207,7 @@ class _ReceiverSearchScreenState extends State<ReceiverSearchScreen> {
             ]
           ],
         ),
-        subtitle: Text(data['uid']),
+        subtitle: Text(data['uid']?.toString() ?? doc.id),
         trailing: parcelsWaiting > 0
             ? Container(
                 padding: const EdgeInsets.all(8),

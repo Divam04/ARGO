@@ -182,6 +182,23 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
                 ),
               ),
             ),
+            
+          // Return Button
+          Positioned(
+            top: 50,
+            left: 20,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+              ),
+            ),
+          ),
         ],
       ),
     );

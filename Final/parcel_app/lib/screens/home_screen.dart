@@ -80,6 +80,12 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              // Logo in the center
+              Image.asset(
+                'assets/logo.png',
+                height: 40,
+                fit: BoxFit.contain,
+              ),
               // Profile icon → Profile
               GestureDetector(
                 onTap: () {
