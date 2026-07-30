@@ -45,12 +45,12 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
 
   Future<void> _initCamera() async {
     final cameras = await availableCameras();
-    final frontCamera = cameras.firstWhere(
-      (c) => c.lensDirection == CameraLensDirection.front,
+    final backCamera = cameras.firstWhere(
+      (c) => c.lensDirection == CameraLensDirection.back,
       orElse: () => cameras.first,
     );
 
-    _controller = CameraController(frontCamera, ResolutionPreset.medium);
+    _controller = CameraController(backCamera, ResolutionPreset.medium);
     await _controller!.initialize();
     if (!mounted) return;
     setState(() {});

@@ -341,7 +341,88 @@ exports.completeHandover = functions.https.onCall(async (data, context) => {
     return { success: true };
 });
 
+exports.resolveStudentMatch = functions.https.onCall(async (data, context) => {
+    const { recipientName } = data || {};
+    if (!recipientName) return { exact: false, candidates: [] };
+    
+    const nameLower = recipientName.trim().toLowerCase();
+    
+    // Check for an exact match first
+    const exactSnap = await db.collection('students')
+        .where('nameLower', '==', nameLower)
+        .get();
+        
+    if (!exactSnap.empty && exactSnap.size === 1) {
+        const doc = exactSnap.docs[0];
+        return {
+            exact: true,
+            candidates: [{ uid: doc.id, name: doc.data().name, email: doc.data().email }]
+        };
+    }
+    
+    // Otherwise, perform a comprehensive substring and fuzzy search
+    const candidatesMap = new Map();
+    const allStudents = await db.collection('students').get();
+    
+    // Helper function for Levenshtein distance
+    const levenshtein = (a, b) => {
+        if (a.length === 0) return b.length;
+        if (b.length === 0) return a.length;
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,
+                        Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+                    );
+                }
+            }
+        }
+        return matrix[b.length][a.length];
+    };
+
+    for (const doc of allStudents.docs) {
+        const studentData = doc.data();
+        const studentNameLower = (studentData.name || '').toLowerCase();
+        
+        let isMatch = false;
+        
+        if (studentNameLower === nameLower) {
+            isMatch = true;
+        } else if (studentNameLower.length >= 3 && nameLower.length >= 3) {
+            if (studentNameLower.includes(nameLower) || nameLower.includes(studentNameLower)) {
+                isMatch = true;
+            } else {
+                const distance = levenshtein(studentNameLower, nameLower);
+                const maxLength = Math.max(studentNameLower.length, nameLower.length);
+                if (maxLength > 0) {
+                    const similarity = 1 - (distance / maxLength);
+                    if (similarity > 0.7) {
+                        isMatch = true;
+                    }
+                }
+            }
+        } else if (studentNameLower.includes(nameLower)) {
+            isMatch = true;
+        }
+        
+        if (isMatch) {
+            candidatesMap.set(doc.id, { uid: doc.id, name: studentData.name, email: studentData.email });
+        }
+    }
+    
+    const candidates = Array.from(candidatesMap.values());
+    
+    return { exact: false, candidates };
+});
+
 exports.assignRack = functions.https.onCall(async (data, context) => {
+
     // 1. Generate all possible racks
     const allRacks = [];
     for (const r of ['A', 'B', 'C', 'D']) {
@@ -374,8 +455,20 @@ exports.assignRack = functions.https.onCall(async (data, context) => {
 });
 
 exports.commitParcel = functions.https.onCall(async (data, context) => {
-    const { deliveryService, recipientName, trackingNumber, rack, guardId } = data;
+    const { deliveryService, recipientName, trackingNumber, rack, guardId, studentUid } = data;
     
+    if (!studentUid) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing studentUid');
+    }
+
+    const studentDoc = await db.collection('students').doc(studentUid).get();
+    if (!studentDoc.exists) {
+        throw new functions.https.HttpsError('not-found', `Student not found in database.`);
+    }
+
+    const toEmail = studentDoc.data().email;
+    const studentName = studentDoc.data().name;
+
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
     const crypto = require('crypto');
     const pinHash = crypto.createHash('sha256').update(pin).digest('hex');
@@ -388,71 +481,12 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
         pin,
         pinHash,
         status: 'stored',
-        receivedAt: FieldValue.serverTimestamp()
+        receivedAt: FieldValue.serverTimestamp(),
+        studentUid: studentUid,
+        studentName: studentName
     });
 
-    // --- Robust student lookup ---
-    // 1. Try exact case-insensitive match using nameLower field
-    const nameLower = (recipientName || '').trim().toLowerCase();
-    let toEmail = null;
-    let matchedUid = null;
-    let matchedName = null;
-    
-    if (nameLower) {
-        // First try: exact match on nameLower
-        let studentsSnap = await db.collection('students')
-            .where('nameLower', '==', nameLower)
-            .limit(1)
-            .get();
-        
-        if (!studentsSnap.empty) {
-            toEmail = studentsSnap.docs[0].data().email;
-            matchedUid = studentsSnap.docs[0].id;
-            matchedName = studentsSnap.docs[0].data().name;
-        }
-
-        // Second try: prefix match on the original name field (case-sensitive fallback)
-        if (!toEmail) {
-            studentsSnap = await db.collection('students')
-                .where('name', '>=', recipientName)
-                .where('name', '<=', recipientName + '\uf8ff')
-                .limit(1)
-                .get();
-            if (!studentsSnap.empty) {
-                toEmail = studentsSnap.docs[0].data().email;
-                matchedUid = studentsSnap.docs[0].id;
-                matchedName = studentsSnap.docs[0].data().name;
-            }
-        }
-
-        // Third try: fetch ALL students and do a fuzzy contains match
-        if (!toEmail) {
-            const allStudents = await db.collection('students').get();
-            for (const doc of allStudents.docs) {
-                const studentData = doc.data();
-                const studentNameLower = (studentData.name || '').toLowerCase();
-                // Check if either name contains the other (handles partial names from labels)
-                if (studentNameLower.includes(nameLower) || nameLower.includes(studentNameLower)) {
-                    toEmail = studentData.email;
-                    matchedUid = doc.id;
-                    matchedName = studentData.name;
-                    break;
-                }
-            }
-        }
-    }
-
-    if (matchedUid) {
-        await parcelRef.update({
-            studentUid: matchedUid,
-            studentName: matchedName
-        });
-    }
-
-    if (!toEmail) {
-        console.warn(`No student found matching name: "${recipientName}". Email will not be sent.`);
-    } else {
-        let guardName = guardId || 'Unknown Guard';
+    let guardName = guardId || 'Unknown Guard';
         if (guardId) {
             try {
                 const guardDoc = await db.collection('guards').doc(guardId).get();
@@ -462,7 +496,7 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
 
         const dateStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
 
-        let text = `Hello ${matchedName || recipientName},\n\nYour parcel from ${deliveryService} has been stored at Gate 1.\n\n`;
+        let text = `Hello ${studentName || recipientName},\n\nYour parcel from ${deliveryService} has been stored at Gate 1.\n\n`;
         text += `AWB: ${trackingNumber || 'N/A'}\n`;
         text += `Arrival Time: ${dateStr}\n`;
         text += `Registered By: ${guardName}\n`;
@@ -475,7 +509,7 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
                 <h2 style="margin: 0;">Parcel Arrived</h2>
             </div>
             <div style="padding: 24px;">
-                <p>Hello ${matchedName || recipientName},</p>
+                <p>Hello ${studentName || recipientName},</p>
                 <p>Your parcel has arrived and is safely stored at <strong>Gate 1</strong>.</p>
                 
                 <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
@@ -514,7 +548,6 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
             html: html,
             status: 'pending'
         });
-    }
 
-    return { success: true, parcelId: parcelRef.id, pin, emailSentTo: toEmail || 'none' };
+    return { success: true, parcelId: parcelRef.id, pin, emailSentTo: toEmail };
 });

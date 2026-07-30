@@ -8,6 +8,8 @@ class ParcelRecordedScreen extends StatefulWidget {
   final String recipientName;
   final String trackingNumber;
   final String assignedRack;
+  final String studentUid;
+  final String studentName;
 
   const ParcelRecordedScreen({
     super.key,
@@ -15,6 +17,8 @@ class ParcelRecordedScreen extends StatefulWidget {
     required this.recipientName,
     required this.trackingNumber,
     required this.assignedRack,
+    required this.studentUid,
+    required this.studentName,
   });
 
   @override
@@ -34,6 +38,7 @@ class _ParcelRecordedScreenState extends State<ParcelRecordedScreen> {
         'trackingNumber': widget.trackingNumber,
         'rack': widget.assignedRack,
         'guardId': GuardSession.currentGuardId ?? 'unknown',
+        'studentUid': widget.studentUid,
       });
 
       if (!mounted) return;
@@ -50,9 +55,14 @@ class _ParcelRecordedScreenState extends State<ParcelRecordedScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isCommitting = false);
+      String errorMsg = 'Failed to commit parcel: $e';
+      if (e.toString().contains('not-found')) {
+        errorMsg = 'User Not Found';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to commit parcel: $e'),
+          content: Text(errorMsg),
           backgroundColor: AppColors.error,
         ),
       );
