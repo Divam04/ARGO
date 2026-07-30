@@ -43,7 +43,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
       decoration: const BoxDecoration(
         color: AppColors.primary,
         borderRadius: BorderRadius.only(
@@ -83,8 +83,9 @@ class HomeScreen extends StatelessWidget {
               // Logo in the center
               Image.asset(
                 'assets/logo.png',
-                height: 40,
+                height: 72,
                 fit: BoxFit.contain,
+                color: Colors.white,
               ),
               // Profile icon → Profile
               GestureDetector(

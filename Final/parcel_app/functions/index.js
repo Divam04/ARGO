@@ -296,7 +296,35 @@ exports.completeHandover = functions.https.onCall(async (data, context) => {
 });
 
 exports.assignRack = functions.https.onCall(async (data, context) => {
-    return { success: true, rack: 'A3 - Slot 2' };
+    // 1. Generate all possible racks
+    const allRacks = [];
+    for (const r of ['A', 'B', 'C', 'D']) {
+        for (let c = 1; c <= 5; c++) {
+            allRacks.push(`${r}${c}`);
+        }
+    }
+
+    // 2. Query all stored parcels to count how many are in each rack
+    const parcelsSnapshot = await db.collection('parcels').where('status', '==', 'stored').get();
+    const rackCounts = {};
+    parcelsSnapshot.forEach(doc => {
+        const p = doc.data();
+        if (p.rack) {
+            rackCounts[p.rack] = (rackCounts[p.rack] || 0) + 1;
+        }
+    });
+
+    // 3. Filter racks that have less than 5 parcels
+    const availableRacks = allRacks.filter(r => (rackCounts[r] || 0) < 5);
+
+    if (availableRacks.length === 0) {
+        throw new functions.https.HttpsError('resource-exhausted', 'All racks are full (capacity 5 per cell).');
+    }
+
+    // 4. Select the first available rack (ascending order)
+    const chosenRack = availableRacks[0];
+
+    return { success: true, rack: chosenRack };
 });
 
 exports.commitParcel = functions.https.onCall(async (data, context) => {
@@ -381,7 +409,7 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
         await db.collection('emails').add({
             to: toEmail,
             subject: `Your parcel from ${deliveryService} has arrived!`,
-            text: `Hello ${recipientName},\n\nYour parcel from ${deliveryService} has been stored at the security desk.\n\nYour collection PIN is: ${pin}\n\nPlease collect it at your earliest convenience.`,
+            text: `Hello ${recipientName},\n\nYour parcel from ${deliveryService} has been stored at Gate 1.\n\nYour collection PIN is: ${pin}\n\nPlease collect it at your earliest convenience.`,
             status: 'pending'
         });
     }
