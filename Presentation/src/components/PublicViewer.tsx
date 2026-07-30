@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { subscribeToImages, CarouselImage } from '../lib/firebase';
+import { subscribeToImages } from '../lib/firebase';
+import type { CarouselImage } from '../lib/firebase';
 import { DeviceFrame } from './DeviceFrame';
 
 export const PublicViewer: React.FC = () => {

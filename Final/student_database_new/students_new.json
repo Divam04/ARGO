@@ -1,0 +1,373 @@
+[
+  {
+    "uid": "U20230110",
+    "name": "Pratham Bhardwaj",
+    "mail": "pratham.b.ug23@plaksha.edu.in",
+    "photo_path": "faces/U20230110.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20240018",
+    "name": "Abhishek",
+    "mail": "Abhishek.ug24@plaksha.edu.in",
+    "photo_path": "faces/U20240018.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20240078",
+    "name": "Om Satpute",
+    "mail": "Om.Satpute.ug24@plaksha.edu.in",
+    "photo_path": "faces/U20240078.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20240152",
+    "name": "Apurv Bhushan",
+    "mail": "Apurv.Bhushan.ug24@plaksha.edu.in",
+    "photo_path": "faces/U20240152.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250009",
+    "name": "Ananya Sunder",
+    "mail": "ananya.sunder.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250009.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250030",
+    "name": "Ryan Keshwani",
+    "mail": "ryan.keshwani.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250030.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250036",
+    "name": "Dheer Gandhi",
+    "mail": "dheer.gandhi.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250036.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250041",
+    "name": "Rishon Joon",
+    "mail": "rishon.joon.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250041.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250044",
+    "name": "Joepaul Thomas",
+    "mail": "joepaul.thomas.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250044.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250046",
+    "name": "Kashvi Mittal",
+    "mail": "kashvi.mittal.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250046.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250055",
+    "name": "Viryansh Rastogi",
+    "mail": "viryansh.r.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250055.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250059",
+    "name": "Tanveer Singh",
+    "mail": "tanveer.singh.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250059.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250062",
+    "name": "Vansh Awasthi",
+    "mail": "vansh.awasthi.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250062.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250072",
+    "name": "Anand Sinha",
+    "mail": "anand.sinha.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250072.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250074",
+    "name": "Nallapati Sai Harsha",
+    "mail": "sai.nallapati.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250074.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250079",
+    "name": "Suchethan Ph",
+    "mail": "suchethan.ph.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250079.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250085",
+    "name": "Siddhi Agrawal",
+    "mail": "siddhi.agrawal.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250085.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250087",
+    "name": "Greeshma Tadi",
+    "mail": "greeshma.tadi.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250087.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250090",
+    "name": "Shiv Narang",
+    "mail": "shiv.narang.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250090.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250100",
+    "name": "Nandana Penmetsa",
+    "mail": "valli.penmetsa.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250100.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250104",
+    "name": "Tista Tewani",
+    "mail": "tista.tewani.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250104.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250107",
+    "name": "Pappireddipalli Aaradhya",
+    "mail": "pappireddipalli.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250107.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250108",
+    "name": "Utkarsh Khurana",
+    "mail": "utkarsh.khurana.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250108.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250112",
+    "name": "Tvisha Singla",
+    "mail": "tvisha.singla.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250112.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250114",
+    "name": "Anand Suresh",
+    "mail": "anand.suresh.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250114.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250118",
+    "name": "Priyanka Chopurala",
+    "mail": "priyanka.c.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250118.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250122",
+    "name": "Samreen Tole",
+    "mail": "samreen.tole.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250122.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250123",
+    "name": "Aarav Sood",
+    "mail": "aarav.sood.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250123.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250133",
+    "name": "Janhavi Kohale",
+    "mail": "janhavi.kohale.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250133.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250139",
+    "name": "Sarthak Mhaske",
+    "mail": "sarthak.mhaske.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250139.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250143",
+    "name": "Abhishek",
+    "mail": "abhishek.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250143.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250150",
+    "name": "Navjot Singh",
+    "mail": "navjot.singh.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250150.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250155",
+    "name": "Aadi Batra",
+    "mail": "aadi.batra.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250155.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250157",
+    "name": "Sarthak Bisht",
+    "mail": "sarthak.bisht.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250157.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250159",
+    "name": "Naman Dung",
+    "mail": "naman.dung.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250159.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250160",
+    "name": "Raunaq Laishram",
+    "mail": "raunaq.laishram.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250160.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250170",
+    "name": "Manvi Pandey",
+    "mail": "manvi.pandey.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250170.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250171",
+    "name": "Diya Patibandla",
+    "mail": "diya.patibandla.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250171.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250177",
+    "name": "Achaljot Kaur",
+    "mail": "achaljot.kaur.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250177.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250180",
+    "name": "Omkar Rane",
+    "mail": "omkar.rane.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250180.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250183",
+    "name": "Bapudiya",
+    "mail": "bapudiya.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250183.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250194",
+    "name": "Daksh Bhargava",
+    "mail": "daksh.bhargava.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250194.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250195",
+    "name": "Pradyumna Adepu",
+    "mail": "pradyumna.adepu.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250195.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250206",
+    "name": "Punyala Reddy",
+    "mail": "punyala.reddy.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250206.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250211",
+    "name": "Sakshi Sharma",
+    "mail": "sakshi.sharma.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250211.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250217",
+    "name": "Avanie Mahajan",
+    "mail": "avanie.mahajan.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250217.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250220",
+    "name": "Parth Dogra",
+    "mail": "parth.dogra.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250220.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250224",
+    "name": "Avishka Jain",
+    "mail": "avishka.jain.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250224.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250229",
+    "name": "Dhiraj Deva",
+    "mail": "dhiraj.deva.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250229.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250235",
+    "name": "Divam Gupta",
+    "mail": "divam.gupta.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250235.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250236",
+    "name": "Jaskirat Anand",
+    "mail": "jaskirat.anand.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250236.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250238",
+    "name": "Naunidh Chawla",
+    "mail": "naunidh.chawla.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250238.jpeg",
+    "embedding": null
+  },
+  {
+    "uid": "U20250244",
+    "name": "Parv Jain",
+    "mail": "parv.jain.ug25@plaksha.edu.in",
+    "photo_path": "faces/U20250244.jpeg",
+    "embedding": null
+  }
+]

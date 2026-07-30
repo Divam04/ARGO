@@ -21,6 +21,48 @@ class HomeScreen extends StatelessWidget {
       canPop: false,
       child: Scaffold(
         backgroundColor: AppColors.background,
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (c) => const AlertDialog(content: Text('Extracting embeddings... Please wait.')),
+            );
+            try {
+              final dir = Directory('/sdcard/Android/data/com.example.parcel_app/files/student_database_new');
+              if (!await dir.exists()) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Folder not found')));
+                return;
+              }
+              final files = dir.listSync();
+              final service = FaceRecognitionService();
+              await service.init();
+              
+              int count = 0;
+              for (var file in files) {
+                if (file is File && (file.path.endsWith('.jpeg') || file.path.endsWith('.jpg') || file.path.endsWith('.png'))) {
+                  final uid = file.path.split('/').last.split('.').first;
+                  final embedding = await service.extractEmbedding(file);
+                  if (embedding != null) {
+                    await FirebaseFirestore.instance.collection('students').doc(uid).update({
+                      'faceEmbedding': embedding,
+                    });
+                    count++;
+                  }
+                }
+              }
+              service.dispose();
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Extracted $count embeddings!')));
+            } catch (e) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+            }
+          },
+          child: const Icon(Icons.face),
+          tooltip: 'Extract Embeddings',
+        ),
         body: SafeArea(
           child: Column(
             children: [
