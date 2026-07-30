@@ -84,7 +84,7 @@ class _ScanLabelScreenState extends State<ScanLabelScreen> {
                   CircularProgressIndicator(color: AppColors.primary),
                   SizedBox(height: 24),
                   Text(
-                    'AI is reading the label...',
+                    'Processing parcel...',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 18,
