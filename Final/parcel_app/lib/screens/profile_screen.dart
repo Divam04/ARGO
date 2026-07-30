@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../session.dart';
 import '../theme/app_colors.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -30,8 +31,9 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'Logged in as Guard',
+              'Logged in as ${Session.guardName}',
               style: Theme.of(context).textTheme.headlineMedium,
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 48),
             SizedBox(

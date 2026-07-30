@@ -4,7 +4,7 @@ const { parse } = require('csv-parse/sync');
 const nodemailer = require('nodemailer');
 const { GoogleGenAI } = require('@google/genai');
 
-const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 admin.initializeApp();
 const db = getFirestore();
@@ -188,14 +188,14 @@ exports.resolvePin = functions.https.onCall(async (data, context) => {
         failedCount++;
         let lockedUntil = null;
         if (failedCount >= maxAttempts) {
-            lockedUntil = admin.firestore.Timestamp.fromDate(new Date(Date.now() + lockoutMinutes * 60000));
+            lockedUntil = Timestamp.fromDate(new Date(Date.now() + lockoutMinutes * 60000));
         }
         
         await attemptRef.set({
             failedCount,
             lockedUntil,
             lastGuardId: guardId,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: FieldValue.serverTimestamp()
         }, { merge: true });
 
         if (lockedUntil) {
@@ -226,71 +226,117 @@ exports.resolvePin = functions.https.onCall(async (data, context) => {
 
 exports.completeHandover = functions.https.onCall(async (data, context) => {
     const { parcelId, receiverUid, receiverName, isOwner, verificationMethod, faceMatchScore, guardId } = data;
-    if (!parcelId || !receiverUid || !verificationMethod || !guardId) {
+    if (!parcelId || !verificationMethod || !guardId) {
         throw new functions.https.HttpsError('invalid-argument', 'Missing required fields for handover');
     }
 
     const parcelRef = db.collection('parcels').doc(parcelId);
+    const parcelDoc = await parcelRef.get();
     
-    await db.runTransaction(async (transaction) => {
-        const parcelDoc = await transaction.get(parcelRef);
-        if (!parcelDoc.exists) throw new functions.https.HttpsError('not-found', 'Parcel not found');
-        const parcel = parcelDoc.data();
-        if (parcel.status !== 'stored') throw new functions.https.HttpsError('failed-precondition', 'Parcel is not stored');
-        
-        const rackRef = db.collection('racks').doc(parcel.rackId);
-        
-        // Update Parcel
-        transaction.update(parcelRef, {
-            status: 'collected',
-            receiverUid,
-            receiverIsOwner: isOwner,
-            collectedByGuardId: guardId,
-            collectedAt: admin.firestore.FieldValue.serverTimestamp(),
-            verificationMethod,
-            faceMatchScore: faceMatchScore || null
-        });
+    if (!parcelDoc.exists) throw new functions.https.HttpsError('not-found', 'Parcel not found');
+    const parcel = parcelDoc.data();
+    if (parcel.status !== 'stored') throw new functions.https.HttpsError('failed-precondition', 'Parcel is not stored');
+    
+    // Update Parcel status to collected
+    await parcelRef.update({
+        status: 'collected',
+        receiverUid: receiverUid || null,
+        receiverName: receiverName || null,
+        receiverIsOwner: isOwner,
+        collectedByGuardId: guardId,
+        collectedAt: FieldValue.serverTimestamp(),
+        verificationMethod,
+        faceMatchScore: faceMatchScore || null
+    });
 
-        // Free the rack slot
-        transaction.update(rackRef, {
-            occupied: admin.firestore.FieldValue.increment(-1)
-        });
-
-        // Decrement student parcelsWaiting
-        if (parcel.studentUid) {
-            const studentRef = db.collection('students').doc(parcel.studentUid);
-            transaction.update(studentRef, {
-                parcelsWaiting: admin.firestore.FieldValue.increment(-1)
-            });
-        }
-        
-        // Send email to owner
-        if (parcel.studentUid) {
-            const ownerRef = db.collection('students').doc(parcel.studentUid);
-            const ownerDoc = await transaction.get(ownerRef);
-            if (ownerDoc.exists) {
-                const ownerEmail = ownerDoc.data().email;
-                const emailRef = db.collection('emails').doc();
-                
-                let text = `Your parcel from ${parcel.deliveryService} has been collected.`;
-                if (!isOwner) {
-                   text = `Your parcel from ${parcel.deliveryService} was collected on your behalf by ${receiverName} (${receiverUid}).`;
-                }
-
-                transaction.set(emailRef, {
-                    type: 'COLLECTED',
-                    to: ownerEmail,
-                    subject: 'Parcel collected',
-                    text: text,
-                    html: `<p>${text}</p><br><p>Verification: ${verificationMethod}</p>`,
-                    parcelId: parcelId,
-                    studentUid: parcel.studentUid,
-                    sentAt: admin.firestore.FieldValue.serverTimestamp(),
-                    status: 'queued'
+    // Decrement student parcelsWaiting if applicable
+    const studentUid = parcel.studentUid;
+    if (studentUid) {
+        try {
+            const studentRef = db.collection('students').doc(studentUid);
+            const studentDoc = await studentRef.get();
+            if (studentDoc.exists) {
+                await studentRef.update({
+                    parcelsWaiting: FieldValue.increment(-1)
                 });
             }
+        } catch (err) {
+            console.warn('Could not decrement parcelsWaiting:', err);
         }
-    });
+    }
+
+    // Send collection email to owner
+    if (studentUid) {
+        try {
+            const ownerDoc = await db.collection('students').doc(studentUid).get();
+            if (ownerDoc.exists) {
+                const ownerEmail = ownerDoc.data().email;
+                
+                let guardName = guardId;
+                try {
+                    const guardDoc = await db.collection('guards').doc(guardId).get();
+                    if (guardDoc.exists) guardName = guardDoc.data().name || guardId;
+                } catch(e) {}
+
+                const dateStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
+
+                let text = `Your parcel from ${parcel.deliveryService || 'N/A'} has been collected.\n`;
+                text += `AWB: ${parcel.trackingNumber || 'N/A'}\n`;
+                text += `Collected By: ${receiverName || 'Unknown'} (${receiverUid || 'N/A'})\n`;
+                text += `Handed Over By: ${guardName}\n`;
+                text += `Date/Time: ${dateStr}\n`;
+
+                const html = `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                    <div style="background-color: #0d6efd; color: white; padding: 16px; text-align: center;">
+                        <h2 style="margin: 0;">Parcel Handed Over</h2>
+                    </div>
+                    <div style="padding: 24px;">
+                        <p>Hello ${ownerDoc.data().name || ''},</p>
+                        <p>${isOwner ? 'You have' : 'Someone has'} collected your parcel.</p>
+                        
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 12px 0; color: #666;"><strong>Courier:</strong></td>
+                                <td style="padding: 12px 0; text-align: right;">${parcel.deliveryService || 'N/A'}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 12px 0; color: #666;"><strong>AWB:</strong></td>
+                                <td style="padding: 12px 0; text-align: right;">${parcel.trackingNumber || 'N/A'}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 12px 0; color: #666;"><strong>Collected By:</strong></td>
+                                <td style="padding: 12px 0; text-align: right;">${receiverName || 'Unknown'} (${receiverUid || 'N/A'})</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 12px 0; color: #666;"><strong>Handed Over By:</strong></td>
+                                <td style="padding: 12px 0; text-align: right;">${guardName}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 12px 0; color: #666;"><strong>Time:</strong></td>
+                                <td style="padding: 12px 0; text-align: right;">${dateStr}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                `;
+
+                await db.collection('emails').add({
+                    type: 'COLLECTED',
+                    to: ownerEmail,
+                    subject: 'Parcel Collected',
+                    text: text,
+                    html: html,
+                    parcelId: parcelId,
+                    studentUid: studentUid,
+                    sentAt: FieldValue.serverTimestamp(),
+                    status: 'pending'
+                });
+            }
+        } catch (err) {
+            console.warn('Could not send collection email:', err);
+        }
+    }
 
     return { success: true };
 });
@@ -328,7 +374,7 @@ exports.assignRack = functions.https.onCall(async (data, context) => {
 });
 
 exports.commitParcel = functions.https.onCall(async (data, context) => {
-    const { deliveryService, recipientName, trackingNumber, rack } = data;
+    const { deliveryService, recipientName, trackingNumber, rack, guardId } = data;
     
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
     const crypto = require('crypto');
@@ -406,10 +452,66 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
     if (!toEmail) {
         console.warn(`No student found matching name: "${recipientName}". Email will not be sent.`);
     } else {
+        let guardName = guardId || 'Unknown Guard';
+        if (guardId) {
+            try {
+                const guardDoc = await db.collection('guards').doc(guardId).get();
+                if (guardDoc.exists) guardName = guardDoc.data().name || guardId;
+            } catch(e) {}
+        }
+
+        const dateStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
+
+        let text = `Hello ${matchedName || recipientName},\n\nYour parcel from ${deliveryService} has been stored at Gate 1.\n\n`;
+        text += `AWB: ${trackingNumber || 'N/A'}\n`;
+        text += `Arrival Time: ${dateStr}\n`;
+        text += `Registered By: ${guardName}\n`;
+        text += `Courier: ${deliveryService}\n\n`;
+        text += `Your collection PIN is: ${pin}\n\nPlease collect it at your earliest convenience.`;
+
+        const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: #28a745; color: white; padding: 16px; text-align: center;">
+                <h2 style="margin: 0;">Parcel Arrived</h2>
+            </div>
+            <div style="padding: 24px;">
+                <p>Hello ${matchedName || recipientName},</p>
+                <p>Your parcel has arrived and is safely stored at <strong>Gate 1</strong>.</p>
+                
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px 0; color: #666;"><strong>Courier:</strong></td>
+                        <td style="padding: 12px 0; text-align: right;">${deliveryService || 'N/A'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px 0; color: #666;"><strong>AWB:</strong></td>
+                        <td style="padding: 12px 0; text-align: right;">${trackingNumber || 'N/A'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px 0; color: #666;"><strong>Arrival Time:</strong></td>
+                        <td style="padding: 12px 0; text-align: right;">${dateStr}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px 0; color: #666;"><strong>Registered By:</strong></td>
+                        <td style="padding: 12px 0; text-align: right;">${guardName}</td>
+                    </tr>
+                </table>
+                
+                <div style="margin-top: 32px; background-color: #f8f9fa; padding: 16px; text-align: center; border-radius: 8px;">
+                    <p style="margin: 0; color: #666; font-size: 14px;">Your Collection PIN</p>
+                    <h1 style="margin: 8px 0 0 0; letter-spacing: 4px; color: #0d6efd;">${pin}</h1>
+                </div>
+                
+                <p style="margin-top: 24px; color: #666; font-size: 14px; text-align: center;">Please collect it at your earliest convenience.</p>
+            </div>
+        </div>
+        `;
+
         await db.collection('emails').add({
             to: toEmail,
             subject: `Your parcel from ${deliveryService} has arrived!`,
-            text: `Hello ${recipientName},\n\nYour parcel from ${deliveryService} has been stored at Gate 1.\n\nYour collection PIN is: ${pin}\n\nPlease collect it at your earliest convenience.`,
+            text: text,
+            html: html,
             status: 'pending'
         });
     }

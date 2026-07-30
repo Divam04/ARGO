@@ -101,7 +101,6 @@ class FaceRecognitionService {
     // 4. Run Inference
     final shape = [1, 3, 112, 112];
     final inputOrt = OrtValueTensor.createTensorWithDataList(tensorData, shape);
-    
     final runOptions = OrtRunOptions();
     
     try {
@@ -110,17 +109,24 @@ class FaceRecognitionService {
 
       final outputs = _session.run(runOptions, inputs);
       
-      if (outputs.isEmpty) return null;
+      if (outputs.isEmpty) {
+        inputOrt.release();
+        runOptions.release();
+        return null;
+      }
       
       final outputOrt = outputs.first;
-      // ONNX output is usually a multidimensional array or flat list.
-      // We know mobilefacenet outputs [1, 512].
-      final embeddingList = (outputOrt?.value as List?) ?? [];
+      final dynamic outputValue = outputOrt?.value;
+      
       List<double> embedding = [];
-      if (embeddingList.isNotEmpty && embeddingList[0] is List) {
-         embedding = (embeddingList[0] as List).cast<double>().toList();
-      } else {
-         embedding = embeddingList.cast<double>().toList();
+      if (outputValue != null) {
+        if (outputValue is List && outputValue.isNotEmpty && outputValue[0] is List) {
+          embedding = (outputValue[0] as List).map((e) => (e as num).toDouble()).toList();
+        } else if (outputValue is List) {
+          embedding = outputValue.map((e) => (e as num).toDouble()).toList();
+        } else if (outputValue is Float32List) {
+          embedding = outputValue.map((e) => e.toDouble()).toList();
+        }
       }
       
       // Cleanup

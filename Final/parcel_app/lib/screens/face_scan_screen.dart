@@ -81,17 +81,17 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
         
         if (storedEmbeddingDynamic == null) {
           // No enrolled face -> Manual
-          _fallbackToManual();
+          await _fallbackToManual();
           return;
         }
 
-        final storedEmbedding = (storedEmbeddingDynamic as List).cast<double>().toList();
+        final storedEmbedding = (storedEmbeddingDynamic as List).map((e) => (e as num).toDouble()).toList();
         final score = _faceService.cosineSimilarity(liveEmbedding, storedEmbedding);
         print('Face Match Score: $score');
 
         // Assuming threshold 0.36
         if (score > 0.36) {
-          _onMatchSuccess(score);
+          await _onMatchSuccess(score);
           return;
         }
       }
@@ -102,9 +102,15 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
     }
   }
 
-  void _onMatchSuccess(double score) {
+  Future<void> _onMatchSuccess(double score) async {
     _captureTimer?.cancel();
     _timeoutTimer?.cancel();
+    if (_controller != null) {
+      await _controller!.dispose();
+      _controller = null;
+    }
+    
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -119,9 +125,15 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
     );
   }
 
-  void _fallbackToManual() {
+  Future<void> _fallbackToManual() async {
     _captureTimer?.cancel();
     _timeoutTimer?.cancel();
+    if (_controller != null) {
+      await _controller!.dispose();
+      _controller = null;
+    }
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

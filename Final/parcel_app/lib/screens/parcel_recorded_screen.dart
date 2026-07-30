@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import '../services/guard_session.dart';
 
 class ParcelRecordedScreen extends StatefulWidget {
   final String deliveryService;
@@ -32,6 +33,7 @@ class _ParcelRecordedScreenState extends State<ParcelRecordedScreen> {
         'recipientName': widget.recipientName,
         'trackingNumber': widget.trackingNumber,
         'rack': widget.assignedRack,
+        'guardId': GuardSession.currentGuardId ?? 'unknown',
       });
 
       if (!mounted) return;

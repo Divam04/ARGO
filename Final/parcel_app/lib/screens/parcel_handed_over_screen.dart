@@ -40,8 +40,8 @@ class _ParcelHandedOverScreenState extends State<ParcelHandedOverScreen> {
       
       await FirebaseFunctions.instance.httpsCallable('completeHandover').call({
         'parcelId': widget.parcelData['id'],
-        'receiverUid': receiverData['uid'],
-        'receiverName': receiverData['name'],
+        'receiverUid': widget.receiverDoc.id,
+        'receiverName': receiverData['name'] ?? '',
         'isOwner': widget.isOwner,
         'verificationMethod': widget.verificationMethod,
         'faceMatchScore': widget.faceMatchScore,

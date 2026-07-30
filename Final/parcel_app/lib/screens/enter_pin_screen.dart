@@ -66,7 +66,9 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = e is FirebaseFunctionsException ? e.message : 'Invalid PIN or Network Error';
+        _errorMessage = e is FirebaseFunctionsException
+            ? (e.message ?? 'Incorrect PIN entered')
+            : 'Incorrect PIN entered';
         for (var c in _controllers) {
           c.clear();
         }

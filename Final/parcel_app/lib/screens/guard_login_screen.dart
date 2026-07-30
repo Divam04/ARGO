@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../session.dart';
 import '../theme/app_colors.dart';
+import '../services/guard_session.dart';
 
 class GuardLoginScreen extends StatefulWidget {
   const GuardLoginScreen({super.key});
@@ -14,22 +17,36 @@ class _GuardLoginScreenState extends State<GuardLoginScreen> {
   String? _errorMessage;
 
   Future<void> _login() async {
+    final guardId = _guardIdController.text.trim();
+    if (guardId.isEmpty) {
+      setState(() => _errorMessage = 'Please enter a Guard ID');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // In a real implementation this would look up guards/{guardId}
-      // Mocking login for Phase 1 UI scaffolding
-      await Future.delayed(const Duration(seconds: 1));
+      final doc = await FirebaseFirestore.instance.collection('guards').doc(guardId).get();
+      
+      if (!doc.exists) {
+        throw Exception('Invalid Guard ID. Access denied.');
+      }
+
+      final data = doc.data();
+      if (data != null && data.containsKey('name')) {
+        Session.guardName = data['name'];
+        GuardSession.currentGuardId = guardId;
+      }
 
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
     } finally {
       if (mounted) {
@@ -81,7 +98,8 @@ class _GuardLoginScreenState extends State<GuardLoginScreen> {
                         labelText: 'Guard ID',
                         prefixIcon: Icon(Icons.badge_outlined),
                       ),
-                      keyboardType: TextInputType.number,
+                      keyboardType: TextInputType.text,
+                      textCapitalization: TextCapitalization.characters,
                     ),
                     const SizedBox(height: 24),
                     if (_errorMessage != null)

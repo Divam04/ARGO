@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
+import '../session.dart';
 import '../theme/app_colors.dart';
+import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import '../services/face_recognition_service.dart';
+
 import 'scan_label_screen.dart';
 import 'parcel_details_screen.dart';
 import 'enter_pin_screen.dart';
@@ -30,6 +38,7 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 24),
                       // ── Lower action card: Camera + Enter Manually ──
                       _buildActionCard(context),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -119,9 +128,9 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Security Desk',
-            style: TextStyle(
+          Text(
+            Session.guardName,
+            style: const TextStyle(
               color: AppColors.textOnPrimary,
               fontSize: 26,
               fontWeight: FontWeight.w700,
