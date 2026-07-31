@@ -85,7 +85,10 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
                     SizedBox(
                       width: 200,
                       height: 200,
-                      child: Lottie.asset('assets/cart_loading.json'),
+                      child: ColorFiltered(
+                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                        child: Lottie.asset('assets/cart_loading.json'),
+                      ),
                     ),
                   ],
                 ),

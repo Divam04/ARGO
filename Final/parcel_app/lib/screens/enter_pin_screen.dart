@@ -12,7 +12,6 @@ class EnterPinScreen extends StatefulWidget {
 class _EnterPinScreenState extends State<EnterPinScreen> {
   final List<TextEditingController> _controllers = List.generate(4, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
-  bool _isLoading = false;
   String? _errorMessage;
 
   @override
@@ -42,43 +41,19 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
     final pin = _controllers.map((c) => c.text).join();
     if (pin.length < 4) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final errorMessage = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => PinLoadingScreen(pin: pin)),
+    );
 
-    try {
-      final guardId = GuardSession.currentGuardId ?? 'unknown';
-      final deviceId = 'device_123'; // In a real app, use device_info_plus to get a real device ID
-
-      final result = await FirebaseFunctions.instance.httpsCallable('resolvePin').call({
-        'pin': pin,
-        'deviceId': deviceId,
-        'guardId': guardId,
-      });
-
-      final parcelData = Map<String, dynamic>.from(result.data);
-
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => ParcelScreen(parcelData: parcelData)),
-      );
-    } catch (e) {
-      if (!mounted) return;
+    if (errorMessage != null) {
       setState(() {
-        _errorMessage = e is FirebaseFunctionsException
-            ? (e.message ?? 'Incorrect PIN entered')
-            : 'Incorrect PIN entered';
+        _errorMessage = errorMessage;
         for (var c in _controllers) {
           c.clear();
         }
       });
       _focusNodes[0].requestFocus();
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
   }
 
@@ -135,7 +110,6 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                       textAlign: TextAlign.center,
                       keyboardType: TextInputType.number,
                       maxLength: 1,
-                      enabled: !_isLoading,
                       style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                       decoration: InputDecoration(
                         counterText: '',
@@ -152,15 +126,80 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                   );
                 }),
               ),
-              const SizedBox(height: 32),
-              if (_isLoading) 
-                SizedBox(
-                  width: 80,
-                  height: 80,
-                  child: Lottie.asset('assets/cart_loading.json'),
-                ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class PinLoadingScreen extends StatefulWidget {
+  final String pin;
+
+  const PinLoadingScreen({super.key, required this.pin});
+
+  @override
+  State<PinLoadingScreen> createState() => _PinLoadingScreenState();
+}
+
+class _PinLoadingScreenState extends State<PinLoadingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _processPin();
+  }
+
+  Future<void> _processPin() async {
+    try {
+      final guardId = GuardSession.currentGuardId ?? 'unknown';
+      final deviceId = 'device_123';
+
+      final result = await FirebaseFunctions.instance.httpsCallable('resolvePin').call({
+        'pin': widget.pin,
+        'deviceId': deviceId,
+        'guardId': guardId,
+      });
+
+      final parcelData = Map<String, dynamic>.from(result.data);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => ParcelScreen(parcelData: parcelData)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final errorMsg = e is FirebaseFunctionsException
+          ? (e.message ?? 'Incorrect PIN entered')
+          : 'Incorrect PIN entered';
+      Navigator.pop(context, errorMsg);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 250,
+              height: 250,
+              child: Lottie.asset('assets/cart_loading.json'),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              'Verifying PIN...',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
       ),
     );

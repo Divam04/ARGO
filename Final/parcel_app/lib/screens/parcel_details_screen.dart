@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../theme/app_colors.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'parcel_recorded_screen.dart';
@@ -21,6 +22,7 @@ class _ParcelDetailsScreenState extends State<ParcelDetailsScreen> {
   late TextEditingController _serviceController;
   late TextEditingController _recipientController;
   late TextEditingController _trackingController;
+  Timer? _debounce;
 
   bool _isProcessing = false;
   bool _isResolvingOnLoad = false;
@@ -46,14 +48,68 @@ class _ParcelDetailsScreenState extends State<ParcelDetailsScreen> {
         _selectedUid = null;
         _selectedName = null;
       }
-      if (_showInlineDropdown && _recipientController.text != _selectedName) {
-        setState(() {
-          _showInlineDropdown = false;
-        });
-      }
+      
+      if (_debounce?.isActive ?? false) _debounce!.cancel();
+      _debounce = Timer(const Duration(milliseconds: 500), () {
+        if (_recipientController.text.isNotEmpty && _recipientController.text != _selectedName) {
+          _resolveLiveStudent();
+        } else if (_recipientController.text.isEmpty) {
+          setState(() {
+            _showInlineDropdown = false;
+            _dropdownCandidates = null;
+          });
+        }
+      });
     });
 
-    _resolveInitialStudent();
+    if (_recipientController.text.isNotEmpty) {
+      _resolveInitialStudent();
+    }
+  }
+
+  Future<void> _resolveLiveStudent() async {
+    final name = _recipientController.text;
+    if (name.isEmpty) return;
+
+    setState(() => _isResolvingOnLoad = true);
+    try {
+      final resolveResult = await FirebaseFunctions.instance.httpsCallable('resolveStudentMatch').call({
+        'recipientName': name,
+      });
+      
+      if (!mounted) return;
+      if (_recipientController.text != name) return; // Stale result
+
+      final bool exact = resolveResult.data['exact'] as bool;
+      final List candidates = resolveResult.data['candidates'] as List;
+
+      if (!exact && candidates.isEmpty) {
+        setState(() {
+          _isResolvingOnLoad = false;
+          _showInlineDropdown = false;
+          _dropdownCandidates = null;
+        });
+        return;
+      }
+
+      if (exact && candidates.isNotEmpty) {
+        setState(() {
+          _selectedUid = candidates[0]['uid'];
+          _selectedName = candidates[0]['name'];
+          _recipientController.text = _selectedName!;
+          _isResolvingOnLoad = false;
+          _showInlineDropdown = false;
+        });
+      } else {
+        setState(() {
+          _dropdownCandidates = candidates;
+          _isResolvingOnLoad = false;
+          _showInlineDropdown = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isResolvingOnLoad = false);
+    }
   }
 
   Future<void> _resolveInitialStudent() async {
@@ -262,7 +318,7 @@ class _ParcelDetailsScreenState extends State<ParcelDetailsScreen> {
                       filled: true,
                       fillColor: AppColors.surface,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      hintText: 'e.g. Amazon, FedEx, USPS',
+                      hintText: 'e.g. Amazon, Flipkart, Myntra',
                     ),
                   ),
                   const SizedBox(height: 24),
