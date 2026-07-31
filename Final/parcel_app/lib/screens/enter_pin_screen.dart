@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:lottie/lottie.dart';
 import 'parcel_screen.dart';
 import '../services/guard_session.dart';
 
@@ -152,7 +153,12 @@ class _EnterPinScreenState extends State<EnterPinScreen> {
                 }),
               ),
               const SizedBox(height: 32),
-              if (_isLoading) const CircularProgressIndicator(),
+              if (_isLoading) 
+                SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: Lottie.asset('assets/cart_loading.json'),
+                ),
             ],
           ),
         ),

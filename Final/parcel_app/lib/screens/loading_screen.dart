@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'package:lottie/lottie.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -79,14 +81,11 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
                         letterSpacing: 2.0,
                       ),
                     ),
-                    const SizedBox(height: 40),
-                    const SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        color: AppColors.accentCream,
-                      ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: Lottie.asset('assets/cart_loading.json'),
                     ),
                   ],
                 ),

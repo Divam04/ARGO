@@ -341,6 +341,44 @@ exports.completeHandover = functions.https.onCall(async (data, context) => {
     return { success: true };
 });
 
+exports.massHandover = functions.https.onRequest(async (req, res) => {
+    try {
+        const parcelsSnap = await db.collection('parcels').where('status', '==', 'stored').get();
+        if (parcelsSnap.empty) {
+            return res.send("No stored parcels found.");
+        }
+        
+        let count = 0;
+        
+        for (const doc of parcelsSnap.docs) {
+            const parcel = doc.data();
+            await doc.ref.update({
+                status: 'collected',
+                collectedAt: FieldValue.serverTimestamp(),
+                verificationMethod: 'mass_handover',
+                collectedByGuardId: 'admin'
+            });
+            
+            if (parcel.studentUid) {
+                try {
+                    const studentRef = db.collection('students').doc(parcel.studentUid);
+                    const studentDoc = await studentRef.get();
+                    if (studentDoc.exists) {
+                        await studentRef.update({
+                            parcelsWaiting: FieldValue.increment(-1)
+                        });
+                    }
+                } catch(e) {}
+            }
+            count++;
+        }
+        
+        res.send(`Successfully handed over ${count} parcels.`);
+    } catch (e) {
+        res.status(500).send("Error: " + e.message);
+    }
+});
+
 exports.resolveStudentMatch = functions.https.onCall(async (data, context) => {
     const { recipientName } = data || {};
     if (!recipientName) return { exact: false, candidates: [] };
@@ -542,12 +580,218 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
         `;
 
         await db.collection('emails').add({
+            type: 'STORED',
             to: toEmail,
             subject: `Your parcel from ${deliveryService} has arrived!`,
             text: text,
             html: html,
-            status: 'pending'
+            status: 'pending',
+            sentAt: FieldValue.serverTimestamp()
         });
 
     return { success: true, parcelId: parcelRef.id, pin, emailSentTo: toEmail };
+});
+
+exports.dashboardStats = functions.https.onCall(async (data, context) => {
+    // Only allow signed-in users (guards or admins)
+    // if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Not signed in');
+    
+    try {
+        const parcelsSnap = await db.collection('parcels').get();
+        let total = 0;
+        let collected = 0;
+        let stored = 0;
+        let unmatched = 0;
+        
+        let totalDaysTaken = 0;
+        let collectionCount = 0;
+        
+        const now = new Date();
+        const intakeMap = new Map();
+        
+        // Initialize last 7 days
+        for(let i=6; i>=0; i--) {
+            const d = new Date();
+            d.setDate(now.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            intakeMap.set(dateStr, { received: 0, collected: 0 });
+        }
+
+        const storedParcels = [];
+
+        parcelsSnap.forEach(doc => {
+            const p = doc.data();
+            total++;
+            
+            if (!p.studentUid) unmatched++;
+            
+            if (p.status === 'collected') {
+                collected++;
+                if (p.receivedAt && p.collectedAt) {
+                    const diffTime = Math.abs(p.collectedAt.toDate() - p.receivedAt.toDate());
+                    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+                    totalDaysTaken += diffDays;
+                    collectionCount++;
+                }
+                
+                if (p.collectedAt) {
+                    const colDate = p.collectedAt.toDate().toISOString().split('T')[0];
+                    if (intakeMap.has(colDate)) {
+                        intakeMap.get(colDate).collected++;
+                    }
+                }
+            } else if (p.status === 'stored') {
+                stored++;
+                storedParcels.push({
+                    id: doc.id,
+                    deliveryService: p.deliveryService || 'N/A',
+                    trackingNumber: p.trackingNumber || 'N/A',
+                    recipientName: p.recipientNameRaw || p.studentName || 'Unknown',
+                    rack: p.rack || 'Unassigned',
+                    receivedAt: p.receivedAt ? p.receivedAt.toDate().toISOString() : null
+                });
+            }
+            
+            if (p.receivedAt) {
+                const recDate = p.receivedAt.toDate().toISOString().split('T')[0];
+                if (intakeMap.has(recDate)) {
+                    intakeMap.get(recDate).received++;
+                }
+            }
+        });
+        
+        const avgDays = collectionCount > 0 ? (totalDaysTaken / collectionCount) : 0;
+        
+        const dailyIntake = Array.from(intakeMap.entries()).map(([date, counts]) => ({
+            date,
+            received: counts.received,
+            collected: counts.collected
+        }));
+
+        // Sort stored parcels by received date descending
+        storedParcels.sort((a, b) => {
+            if (!a.receivedAt) return 1;
+            if (!b.receivedAt) return -1;
+            return new Date(b.receivedAt) - new Date(a.receivedAt);
+        });
+
+        return {
+            total,
+            collected,
+            uncollected: stored,
+            unmatched,
+            avgDays,
+            dailyIntake,
+            storedParcels
+        };
+    } catch (e) {
+        console.error("Dashboard stats error", e);
+        throw new functions.https.HttpsError('internal', e.message);
+    }
+});
+
+// Temporary function to create an admin user
+const { getAuth } = require('firebase-admin/auth');
+exports.makeAdmin = functions.https.onRequest(async (req, res) => {
+    const email = req.query.email;
+    const password = req.query.password;
+    
+    if (!email || !password) {
+        res.send("Please provide ?email=...&password=... in the URL.");
+        return;
+    }
+
+    try {
+        let user;
+        try {
+            user = await getAuth().getUserByEmail(email);
+        } catch (e) {
+            user = await getAuth().createUser({ email, password });
+        }
+        
+        await getAuth().setCustomUserClaims(user.uid, { admin: true });
+        res.send(`SUCCESS: User ${email} is now an admin! You can log in on the tablet.`);
+    } catch (e) {
+        res.send(`ERROR: ${e.message}`);
+    }
+});
+
+exports.syncRackOccupancy = functions.firestore
+    .document('parcels/{parcelId}')
+    .onWrite(async (change, context) => {
+        const db = admin.firestore();
+        const before = change.before.exists ? change.before.data() : null;
+        const after = change.after.exists ? change.after.data() : null;
+
+        const beforeRack = (before && before.status === 'stored') ? before.rack : null;
+        const afterRack = (after && after.status === 'stored') ? after.rack : null;
+
+        if (beforeRack === afterRack) return null;
+
+        const batch = db.batch();
+
+        if (beforeRack) {
+            batch.update(db.collection('racks').doc(`rack_${beforeRack}`), {
+                occupied: admin.firestore.FieldValue.increment(-1)
+            });
+        }
+
+        if (afterRack) {
+            batch.update(db.collection('racks').doc(`rack_${afterRack}`), {
+                occupied: admin.firestore.FieldValue.increment(1)
+            });
+        }
+
+        return batch.commit();
+    });
+
+
+exports.checkAndSendReminders = functions.pubsub.schedule('every 2 minutes').onRun(async (context) => {
+    const db = admin.firestore();
+    const parcelsSnap = await db.collection('parcels').where('status', '==', 'stored').get();
+    
+    const now = Date.now();
+    const tenMinutesInMillis = 10 * 60 * 1000;
+    
+    let emailsSent = 0;
+
+    for (const doc of parcelsSnap.docs) {
+        const parcel = doc.data();
+        
+        const lastSentMillis = parcel.lastReminderSentAt 
+            ? parcel.lastReminderSentAt.toMillis() 
+            : (parcel.receivedAt ? parcel.receivedAt.toMillis() : 0);
+            
+        if (lastSentMillis === 0) continue; // No receivedAt timestamp
+        
+        if ((now - lastSentMillis) >= tenMinutesInMillis) {
+            // It has been 10+ minutes since last reminder (or since received)
+            
+            // Get student info for email
+            const studentDoc = await db.collection('students').doc(parcel.studentUid).get();
+            if (!studentDoc.exists) continue;
+            
+            const student = studentDoc.data();
+            if (!student.email) continue;
+            
+            // Send email by creating a document in the 'emails' collection
+            await db.collection('emails').add({
+                to: student.email,
+                subject: 'URGENT: Parcel Reminder',
+                text: `Dear ${student.name},\n\nPlease pick up your parcel from ${parcel.deliveryService} located at Rack ${parcel.rack} as soon as possible. It has been waiting for you.\n\nThank you,\nMailroom Team`,
+                createdAt: admin.firestore.Timestamp.now(),
+                type: 'reminder'
+            });
+            
+            // Update lastReminderSentAt
+            await db.collection('parcels').doc(doc.id).update({
+                lastReminderSentAt: admin.firestore.Timestamp.now()
+            });
+            
+            emailsSent++;
+        }
+    }
+    
+    console.log(`Sent ${emailsSent} reminder emails.`);
+    return null;
 });

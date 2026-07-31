@@ -29,8 +29,9 @@ async function run() {
         if (!g.guard_id) continue;
         const docRef = db.collection('guards').doc(g.guard_id);
         await docRef.set({
-            guard_id: g.guard_id,
-            name: g.name
+            guardId: g.guard_id,
+            name: g.name,
+            active: true
         });
         addedCount++;
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:lottie/lottie.dart';
 import '../theme/app_colors.dart';
 import 'parcel_details_screen.dart';
 
@@ -80,10 +81,14 @@ class _ScanLabelScreenState extends State<ScanLabelScreen> {
         child: _isProcessing
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  CircularProgressIndicator(color: AppColors.primary),
-                  SizedBox(height: 24),
-                  Text(
+                children: [
+                  SizedBox(
+                    width: 150,
+                    height: 150,
+                    child: Lottie.asset('assets/cart_loading.json'),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
                     'Processing parcel...',
                     style: TextStyle(
                       color: AppColors.textPrimary,

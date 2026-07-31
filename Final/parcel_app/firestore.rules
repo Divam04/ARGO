@@ -8,41 +8,38 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Assuming admins have a custom claim `admin: true` set via Cloud Functions
-      return request.auth != null && request.auth.token.admin == true;
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        get(/databases/$(database)/documents/guards/$(request.auth.uid)).data.role == 'admin'
+      );
     }
 
     match /config/{doc} {
-      allow read, write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /students/{uid} {
-      allow read: if isSignedIn();
-      allow write: if false;
+      allow read, write: if true;
     }
 
     match /parcels/{id} {
-      allow read: if isSignedIn();
-      allow write: if false;
+      allow read, write: if true;
     }
 
     match /guards/{id} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     match /racks/{id} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     match /emails/{id} {
-      allow read: if isSignedIn();
-      allow write: if false;
+      allow read, write: if true;
     }
 
     match /pinAttempts/{id} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }
