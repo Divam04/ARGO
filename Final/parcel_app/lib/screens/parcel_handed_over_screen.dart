@@ -100,7 +100,7 @@ class _ParcelHandedOverScreenState extends State<ParcelHandedOverScreen> {
                         Text(_error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
                         const SizedBox(height: 32),
                         ElevatedButton(
-                          onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                          onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false),
                           child: const Text('Return to Home'),
                         )
                       ],
@@ -156,7 +156,7 @@ class _ParcelHandedOverScreenState extends State<ParcelHandedOverScreen> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             onPressed: () {
-                              Navigator.of(context).popUntil((route) => route.isFirst);
+                              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
                             },
                             child: const Text('DONE', style: TextStyle(fontSize: 18, color: Colors.white)),
                           ),

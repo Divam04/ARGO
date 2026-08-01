@@ -341,44 +341,6 @@ exports.completeHandover = functions.https.onCall(async (data, context) => {
     return { success: true };
 });
 
-exports.massHandover = functions.https.onRequest(async (req, res) => {
-    try {
-        const parcelsSnap = await db.collection('parcels').where('status', '==', 'stored').get();
-        if (parcelsSnap.empty) {
-            return res.send("No stored parcels found.");
-        }
-        
-        let count = 0;
-        
-        for (const doc of parcelsSnap.docs) {
-            const parcel = doc.data();
-            await doc.ref.update({
-                status: 'collected',
-                collectedAt: FieldValue.serverTimestamp(),
-                verificationMethod: 'mass_handover',
-                collectedByGuardId: 'admin'
-            });
-            
-            if (parcel.studentUid) {
-                try {
-                    const studentRef = db.collection('students').doc(parcel.studentUid);
-                    const studentDoc = await studentRef.get();
-                    if (studentDoc.exists) {
-                        await studentRef.update({
-                            parcelsWaiting: FieldValue.increment(-1)
-                        });
-                    }
-                } catch(e) {}
-            }
-            count++;
-        }
-        
-        res.send(`Successfully handed over ${count} parcels.`);
-    } catch (e) {
-        res.status(500).send("Error: " + e.message);
-    }
-});
-
 exports.resolveStudentMatch = functions.https.onCall(async (data, context) => {
     const { recipientName } = data || {};
     if (!recipientName) return { exact: false, candidates: [] };

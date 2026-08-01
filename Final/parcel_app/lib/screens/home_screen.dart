@@ -16,6 +16,7 @@ import 'enter_pin_screen.dart';
 import 'settings_screen.dart';
 import 'onboard_student_screen.dart';
 import '../services/guard_session.dart';
+import 'receiver_search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -91,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSearching = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Search Error: ')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Search Error: $e')));
       }
     }
   }
@@ -124,34 +125,24 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingParcels = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Parcels Error: ')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Parcels Error: $e')));
       }
     }
   }
 
   Future<void> _handoverParcel(DocumentSnapshot parcelDoc) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+    final parcelData = Map<String, dynamic>.from(parcelDoc.data() as Map);
+    parcelData['id'] = parcelDoc.id;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReceiverSearchScreen(
+          parcelData: parcelData,
+          ownerUid: _selectedStudent?.id,
+        ),
+      ),
     );
-    try {
-      await FirebaseFunctions.instance.httpsCallable('massHandover').call({
-        'parcelIds': [parcelDoc.id],
-        'guardId': GuardSession.currentGuardId ?? 'unknown',
-      });
-      if (mounted) {
-        Navigator.pop(context); // pop loading
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Parcel handed over successfully!')));
-        // Refresh parcels
-        _selectStudent(_selectedStudent!);
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // pop loading
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ')));
-      }
-    }
   }
 
   @override
@@ -422,9 +413,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const Divider(height: 32),
-                    Text('Tracking: ', style: const TextStyle(fontSize: 16, color: AppColors.textSecondary)),
+                    Text('Tracking: ${p['trackingNumber'] ?? 'N/A'}', style: const TextStyle(fontSize: 16, color: AppColors.textSecondary)),
                     const SizedBox(height: 8),
-                    Text('Rack Location: ', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.blue)),
+                    Text('Rack Location: ${p['rack'] ?? 'N/A'}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.blue)),
+                    const SizedBox(height: 8),
+                    Text('Parcel No: ${p['monthlySequenceNumber'] ?? 'N/A'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                     const Spacer(),
                     SizedBox(
                       width: double.infinity,

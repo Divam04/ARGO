@@ -91,7 +91,7 @@ class _ParcelRecordedScreenState extends State<ParcelRecordedScreen> {
       );
 
       if (!mounted) return;
-      Navigator.popUntil(context, ModalRoute.withName('/home'));
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       
     } catch (e) {
       if (!mounted) return;
