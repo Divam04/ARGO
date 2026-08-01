@@ -85,7 +85,11 @@ class SettingsScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const AdminLoginScreen(targetScreen: EmailLogScreen())),
+                        MaterialPageRoute(
+                          builder: (context) => showAdminLogin 
+                              ? const AdminLoginScreen(targetScreen: EmailLogScreen())
+                              : const EmailLogScreen(),
+                        ),
                       );
                     },
                     child: const Text(
@@ -112,7 +116,11 @@ class SettingsScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const AdminLoginScreen(targetScreen: DashboardScreen())),
+                        MaterialPageRoute(
+                          builder: (context) => showAdminLogin 
+                              ? const AdminLoginScreen(targetScreen: DashboardScreen())
+                              : const DashboardScreen(),
+                        ),
                       );
                     },
                     child: const Text(
