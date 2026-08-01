@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../session.dart';
 import '../theme/app_colors.dart';
 import '../services/guard_session.dart';
+import 'admin_login_screen.dart';
+import 'settings_screen.dart';
 
 class GuardLoginScreen extends StatefulWidget {
   const GuardLoginScreen({super.key});
@@ -69,78 +71,107 @@ class _GuardLoginScreenState extends State<GuardLoginScreen> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // App icon / logo area
-                    Image.asset(
-                      'assets/logo.png',
-                      width: 100,
-                      height: 100,
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Guard Login',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Enter your Guard ID to continue',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    TextField(
-                      controller: _guardIdController,
-                      decoration: const InputDecoration(
-                        labelText: 'Guard ID',
-                        prefixIcon: Icon(Icons.badge_outlined),
-                      ),
-                      keyboardType: TextInputType.text,
-                      textCapitalization: TextCapitalization.characters,
-                    ),
-                    const SizedBox(height: 24),
-                    if (_errorMessage != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
+          child: Stack(
+            children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // App icon / logo area
+                        Image.asset(
+                          'assets/logo.png',
+                          width: 100,
+                          height: 100,
                         ),
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: AppColors.error),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Guard Login',
+                          style: Theme.of(context).textTheme.headlineMedium,
                         ),
-                      ),
-                    if (_errorMessage != null) const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.textOnPrimary,
-                              ),
-                            )
-                          : const Text('Login'),
-                      ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Enter your Guard ID to continue',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        TextField(
+                          controller: _guardIdController,
+                          decoration: const InputDecoration(
+                            labelText: 'Guard ID',
+                            prefixIcon: Icon(Icons.badge_outlined),
+                          ),
+                          keyboardType: TextInputType.text,
+                          textCapitalization: TextCapitalization.characters,
+                        ),
+                        const SizedBox(height: 24),
+                        if (_errorMessage != null)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(color: AppColors.error),
+                            ),
+                          ),
+                        if (_errorMessage != null) const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _login,
+                            child: _isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.textOnPrimary,
+                                  ),
+                                )
+                              : const Text('Login'),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              Positioned(
+                top: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SettingsScreen(showAdminLogin: true)),
+                    );
+                  },
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.admin_panel_settings,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
