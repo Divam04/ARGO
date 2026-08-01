@@ -65,9 +65,11 @@ class _ParcelHandedOverScreenState extends State<ParcelHandedOverScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: Center(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        body: Center(
         child: Container(
           width: 500,
           padding: const EdgeInsets.all(32),
@@ -165,7 +167,7 @@ class _ParcelHandedOverScreenState extends State<ParcelHandedOverScreen> {
                     ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildInfoRow(String label, String value) {
