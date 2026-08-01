@@ -787,7 +787,18 @@ exports.checkAndSendReminders = functions.pubsub.schedule('every 2 minutes').onR
     const parcelsSnap = await db.collection('parcels').where('status', '==', 'stored').get();
     
     const now = Date.now();
-    const tenMinutesInMillis = 10 * 60 * 1000;
+    let intervalMinutes = 10;
+    
+    try {
+        const settingsDoc = await db.collection('settings').doc('general').get();
+        if (settingsDoc.exists && settingsDoc.data().reminderIntervalMinutes) {
+            intervalMinutes = Math.max(1, settingsDoc.data().reminderIntervalMinutes); // Minimum 1 minute
+        }
+    } catch (err) {
+        console.error("Error fetching settings: ", err);
+    }
+    
+    const intervalInMillis = intervalMinutes * 60 * 1000;
     
     let emailsSent = 0;
 
@@ -800,7 +811,7 @@ exports.checkAndSendReminders = functions.pubsub.schedule('every 2 minutes').onR
             
         if (lastSentMillis === 0) continue; // No receivedAt timestamp
         
-        if ((now - lastSentMillis) >= tenMinutesInMillis) {
+        if ((now - lastSentMillis) >= intervalInMillis) {
             // It has been 10+ minutes since last reminder (or since received)
             
             // Get student info for email
@@ -810,11 +821,15 @@ exports.checkAndSendReminders = functions.pubsub.schedule('every 2 minutes').onR
             const student = studentDoc.data();
             if (!student.email) continue;
             
+            // Format the arrival time
+            const arrivalTime = parcel.receivedAt ? parcel.receivedAt.toDate().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : 'recently';
+
             // Send email by creating a document in the 'emails' collection
             await db.collection('emails').add({
                 to: student.email,
                 subject: 'Parcel Reminder',
-                text: `Dear ${student.name},\n\nYou can pickup your parcel using the OTP ${parcel.pin} from Gate 1 as soon as possible. It has been waiting for you.\n\nThank You, Team Argo`,
+                html: `Dear ${student.name},<br><br>You can pickup your parcel using the OTP <b>${parcel.pin}</b> from Gate 1 as soon as possible. It has been waiting for you since ${arrivalTime}.<br><br>Thank You,<br>Team Argo`,
+                text: `Dear ${student.name},\n\nYou can pickup your parcel using the OTP ${parcel.pin} from Gate 1 as soon as possible. It has been waiting for you since ${arrivalTime}.\n\nThank You,\nTeam Argo`,
                 createdAt: Timestamp.now(),
                 type: 'reminder'
             });

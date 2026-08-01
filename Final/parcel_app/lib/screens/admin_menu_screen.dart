@@ -5,7 +5,7 @@ import 'shelves_screen.dart';
 import 'api_keys_list_screen.dart';
 import 'bulk_enrol_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 class AdminMenuScreen extends StatelessWidget {
   const AdminMenuScreen({super.key});
 
@@ -144,6 +144,32 @@ class AdminMenuScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 64,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        _showReminderSettingsDialog(context);
+                      },
+                      icon: const Icon(Icons.timer, color: Colors.white, size: 28),
+                      label: const Text(
+                        'REMINDER SETTINGS',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
 
@@ -153,6 +179,67 @@ class AdminMenuScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showReminderSettingsDialog(BuildContext context) async {
+    final TextEditingController controller = TextEditingController();
+    
+    // Fetch current setting
+    try {
+      final doc = await FirebaseFirestore.instance.collection('settings').doc('general').get();
+      if (doc.exists && doc.data()!.containsKey('reminderIntervalMinutes')) {
+        controller.text = doc.data()!['reminderIntervalMinutes'].toString();
+      } else {
+        controller.text = '10'; // Default
+      }
+    } catch (e) {
+      controller.text = '10';
+    }
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Reminder Settings'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Set the reminder interval in minutes (minimum 1 minute).'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Interval (minutes)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final intVal = int.tryParse(controller.text.trim()) ?? 10;
+                final finalVal = intVal < 1 ? 1 : intVal;
+                
+                await FirebaseFirestore.instance.collection('settings').doc('general').set({
+                  'reminderIntervalMinutes': finalVal,
+                }, SetOptions(merge: true));
+                
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
