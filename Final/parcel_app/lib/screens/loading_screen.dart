@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import 'package:lottie/lottie.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LoadingScreen extends StatefulWidget {
@@ -45,8 +44,8 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
     // Simulate auth check delay
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
-      // For now, route directly to login
-      Navigator.pushReplacementNamed(context, '/login');
+      // For now, route to disclaimer
+      Navigator.pushReplacementNamed(context, '/disclaimer');
     }
   }
 
@@ -81,14 +80,9 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
                         letterSpacing: 2.0,
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: 200,
-                      height: 200,
-                      child: ColorFiltered(
-                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                        child: Lottie.asset('assets/cart_loading.json'),
-                      ),
+                    const SizedBox(height: 48),
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   ],
                 ),

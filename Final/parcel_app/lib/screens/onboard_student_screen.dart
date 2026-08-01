@@ -61,6 +61,56 @@ class _OnboardStudentScreenState extends State<OnboardStudentScreen> {
     }
   }
 
+  Future<void> _showDisclaimerAndSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_imageFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please capture a face photo.'), backgroundColor: AppColors.error),
+      );
+      return;
+    }
+
+    final bool? accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.privacy_tip, color: AppColors.primary),
+              SizedBox(width: 12),
+              Text('Privacy Disclaimer'),
+            ],
+          ),
+          content: const Text(
+            'The person\'s name, email, and ID data will be stored along with their image. However, it will be used only for the purpose of the app and will not be given to anyone else.',
+            style: TextStyle(height: 1.5, fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Accept to Continue', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (accepted == true) {
+      _submitRegistration();
+    }
+  }
+
   Future<void> _submitRegistration() async {
     if (!_formKey.currentState!.validate()) return;
     
@@ -237,7 +287,7 @@ class _OnboardStudentScreenState extends State<OnboardStudentScreen> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: _submitRegistration,
+                          onPressed: _showDisclaimerAndSubmit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

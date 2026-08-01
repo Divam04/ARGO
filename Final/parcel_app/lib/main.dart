@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'screens/disclaimer_screen.dart';
 import 'screens/loading_screen.dart';
 import 'screens/guard_login_screen.dart';
 import 'screens/home_screen.dart';
@@ -39,6 +40,7 @@ class ParcelApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LoadingScreen(),
+        '/disclaimer': (context) => const DisclaimerScreen(),
         '/login': (context) => const GuardLoginScreen(),
         '/home': (context) => const HomeScreen(),
         '/profile': (context) => const ProfileScreen(),
