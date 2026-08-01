@@ -720,7 +720,7 @@ exports.makeAdmin = functions.https.onRequest(async (req, res) => {
 exports.syncRackOccupancy = functions.firestore
     .document('parcels/{parcelId}')
     .onWrite(async (change, context) => {
-        const db = admin.firestore();
+        const db = getFirestore();
         const before = change.before.exists ? change.before.data() : null;
         const after = change.after.exists ? change.after.data() : null;
 
@@ -733,22 +733,57 @@ exports.syncRackOccupancy = functions.firestore
 
         if (beforeRack) {
             batch.update(db.collection('racks').doc(`rack_${beforeRack}`), {
-                occupied: admin.firestore.FieldValue.increment(-1)
+                occupied: FieldValue.increment(-1)
             });
         }
 
         if (afterRack) {
             batch.update(db.collection('racks').doc(`rack_${afterRack}`), {
-                occupied: admin.firestore.FieldValue.increment(1)
+                occupied: FieldValue.increment(1)
             });
         }
 
         return batch.commit();
     });
 
+exports.fixRacks = functions.https.onRequest(async (req, res) => {
+    try {
+        const db = getFirestore();
+        // Reset all racks to 0
+        const racksSnap = await db.collection('racks').get();
+        const batch = db.batch();
+        const existingIds = [];
+        racksSnap.forEach(doc => {
+            existingIds.push(doc.id);
+            batch.update(doc.ref, { occupied: 0 });
+        });
+        
+        // Count all stored parcels
+        const parcelsSnap = await db.collection('parcels').where('status', '==', 'stored').get();
+        const counts = {};
+        parcelsSnap.forEach(doc => {
+            const rack = doc.data().rack;
+            if (rack) {
+                counts[rack] = (counts[rack] || 0) + 1;
+            }
+        });
+        
+        // Update racks
+        for (const [rackId, count] of Object.entries(counts)) {
+            // Re-apply prefix when looking up the rack document
+            batch.update(db.collection('racks').doc(`rack_${rackId}`), { occupied: count });
+        }
+        
+        await batch.commit();
+        res.send(`Fixed occupancies: ${JSON.stringify(counts)}. Found IDs: ${existingIds.join(', ')}`);
+    } catch (e) {
+        res.send(`Error: ${e.message}`);
+    }
+});
+
 
 exports.checkAndSendReminders = functions.pubsub.schedule('every 2 minutes').onRun(async (context) => {
-    const db = admin.firestore();
+    const db = getFirestore();
     const parcelsSnap = await db.collection('parcels').where('status', '==', 'stored').get();
     
     const now = Date.now();
@@ -778,15 +813,15 @@ exports.checkAndSendReminders = functions.pubsub.schedule('every 2 minutes').onR
             // Send email by creating a document in the 'emails' collection
             await db.collection('emails').add({
                 to: student.email,
-                subject: 'URGENT: Parcel Reminder',
-                text: `Dear ${student.name},\n\nPlease pick up your parcel from ${parcel.deliveryService} located at Rack ${parcel.rack} as soon as possible. It has been waiting for you.\n\nThank you,\nMailroom Team`,
-                createdAt: admin.firestore.Timestamp.now(),
+                subject: 'Parcel Reminder',
+                text: `Dear ${student.name},\n\nYou can pickup your parcel using the OTP ${parcel.pin} from Gate 1 as soon as possible. It has been waiting for you.\n\nThank You, Team Argo`,
+                createdAt: Timestamp.now(),
                 type: 'reminder'
             });
             
             // Update lastReminderSentAt
             await db.collection('parcels').doc(doc.id).update({
-                lastReminderSentAt: admin.firestore.Timestamp.now()
+                lastReminderSentAt: Timestamp.now()
             });
             
             emailsSent++;
