@@ -41,5 +41,9 @@ service cloud.firestore {
     match /pinAttempts/{id} {
       allow read, write: if true;
     }
+
+    match /settings/{doc} {
+      allow read, write: if true;
+    }
   }
 }

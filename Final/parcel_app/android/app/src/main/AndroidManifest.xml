@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="parcel_app"
+        android:label="ARGO"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

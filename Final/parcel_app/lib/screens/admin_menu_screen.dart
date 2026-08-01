@@ -6,6 +6,7 @@ import 'api_keys_list_screen.dart';
 import 'bulk_enrol_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 class AdminMenuScreen extends StatelessWidget {
   const AdminMenuScreen({super.key});
 
@@ -144,7 +145,6 @@ class AdminMenuScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -183,61 +183,138 @@ class AdminMenuScreen extends StatelessWidget {
   }
 
   Future<void> _showReminderSettingsDialog(BuildContext context) async {
-    final TextEditingController controller = TextEditingController();
-    
-    // Fetch current setting
-    try {
-      final doc = await FirebaseFirestore.instance.collection('settings').doc('general').get();
-      if (doc.exists && doc.data()!.containsKey('reminderIntervalMinutes')) {
-        controller.text = doc.data()!['reminderIntervalMinutes'].toString();
-      } else {
-        controller.text = '10'; // Default
-      }
-    } catch (e) {
-      controller.text = '10';
-    }
+    int selectedDays = 0;
+    int selectedHours = 0;
+    int selectedMinutes = 10;
+    bool isInitialLoading = true;
+    bool isSaving = false;
 
-    if (!context.mounted) return;
-
+    // Show dialog immediately with a loading spinner
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Reminder Settings'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Set the reminder interval in minutes (minimum 1 minute).'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Interval (minutes)',
-                  border: OutlineInputBorder(),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            // Fetch once
+            if (isInitialLoading) {
+              FirebaseFirestore.instance.collection('settings').doc('general').get().then((doc) {
+                if (doc.exists && doc.data()!.containsKey('reminderIntervalMinutes')) {
+                  int totalMinutes = doc.data()!['reminderIntervalMinutes'] as int;
+                  selectedDays = totalMinutes ~/ (24 * 60);
+                  int remainder = totalMinutes % (24 * 60);
+                  selectedHours = remainder ~/ 60;
+                  selectedMinutes = remainder % 60;
+                }
+                setState(() {
+                  isInitialLoading = false;
+                });
+              }).catchError((e) {
+                setState(() {
+                  isInitialLoading = false;
+                });
+              });
+            }
+
+            return AlertDialog(
+              title: const Text('Reminder Settings'),
+              content: isInitialLoading
+                  ? const SizedBox(
+                      height: 150,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Set the reminder interval:'),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // Days
+                            Column(
+                              children: [
+                                const Text('Days', style: TextStyle(fontWeight: FontWeight.bold)),
+                                SizedBox(
+                                  height: 150,
+                                  width: 70,
+                                  child: CupertinoPicker(
+                                    scrollController: FixedExtentScrollController(initialItem: selectedDays),
+                                    itemExtent: 40,
+                                    onSelectedItemChanged: (val) => setState(() => selectedDays = val),
+                                    children: List.generate(8, (i) => Center(child: Text('$i'))),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Text(':', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                            // Hours
+                            Column(
+                              children: [
+                                const Text('Hours', style: TextStyle(fontWeight: FontWeight.bold)),
+                                SizedBox(
+                                  height: 150,
+                                  width: 70,
+                                  child: CupertinoPicker(
+                                    scrollController: FixedExtentScrollController(initialItem: selectedHours),
+                                    itemExtent: 40,
+                                    onSelectedItemChanged: (val) => setState(() => selectedHours = val),
+                                    children: List.generate(24, (i) => Center(child: Text('$i'))),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Text(':', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                            // Minutes
+                            Column(
+                              children: [
+                                const Text('Minutes', style: TextStyle(fontWeight: FontWeight.bold)),
+                                SizedBox(
+                                  height: 150,
+                                  width: 70,
+                                  child: CupertinoPicker(
+                                    scrollController: FixedExtentScrollController(initialItem: selectedMinutes),
+                                    itemExtent: 40,
+                                    onSelectedItemChanged: (val) => setState(() => selectedMinutes = val),
+                                    children: List.generate(60, (i) => Center(child: Text('$i'))),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+              actions: [
+                TextButton(
+                  onPressed: (isInitialLoading || isSaving) ? null : () => Navigator.pop(context),
+                  child: const Text('Cancel'),
                 ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final intVal = int.tryParse(controller.text.trim()) ?? 10;
-                final finalVal = intVal < 1 ? 1 : intVal;
-                
-                await FirebaseFirestore.instance.collection('settings').doc('general').set({
-                  'reminderIntervalMinutes': finalVal,
-                }, SetOptions(merge: true));
-                
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
+                ElevatedButton(
+                  onPressed: (isInitialLoading || isSaving)
+                      ? null
+                      : () async {
+                          setState(() {
+                            isSaving = true;
+                          });
+                          int finalVal = (selectedDays * 24 * 60) + (selectedHours * 60) + selectedMinutes;
+                          if (finalVal < 1) finalVal = 1;
+
+                          try {
+                            await FirebaseFirestore.instance.collection('settings').doc('general').set({
+                              'reminderIntervalMinutes': finalVal,
+                            }, SetOptions(merge: true));
+                          } catch (e) {
+                            // ignore
+                          }
+
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                  child: isSaving ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
