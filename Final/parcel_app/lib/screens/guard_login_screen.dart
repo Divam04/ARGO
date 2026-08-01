@@ -36,9 +36,14 @@ class _GuardLoginScreenState extends State<GuardLoginScreen> {
       }
 
       final data = doc.data();
-      if (data != null && data.containsKey('name')) {
-        Session.guardName = data['name'];
-        GuardSession.currentGuardId = guardId;
+      if (data != null) {
+        if (data['active'] == false) {
+          throw Exception('This guard account has been deactivated.');
+        }
+        if (data.containsKey('name')) {
+          Session.guardName = data['name'];
+          GuardSession.currentGuardId = guardId;
+        }
       }
 
       if (mounted) {

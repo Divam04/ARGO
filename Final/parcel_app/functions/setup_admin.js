@@ -33,13 +33,14 @@ async function createAdmin() {
         console.log(`Successfully created new admin user: ${userRecord.uid}`);
     } catch (error) {
         if (error.code === 'auth/email-already-exists') {
-            console.log("User already exists. Attempting to grant admin privileges...");
+            console.log("User already exists. Updating password and granting admin privileges...");
             try {
                 const userRecord = await getAuth().getUserByEmail(email);
+                await getAuth().updateUser(userRecord.uid, { password: password });
                 await getAuth().setCustomUserClaims(userRecord.uid, { admin: true });
-                console.log(`Successfully granted admin privileges to existing user: ${userRecord.uid}`);
+                console.log(`Successfully updated password and granted admin privileges to existing user: ${userRecord.uid}`);
             } catch (innerError) {
-                console.error("Failed to grant privileges:", innerError);
+                console.error("Failed to update user:", innerError);
             }
         } else {
             console.error("Error creating new user:", error);

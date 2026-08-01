@@ -11,6 +11,7 @@ class EmailLogScreen extends StatefulWidget {
 
 class _EmailLogScreenState extends State<EmailLogScreen> {
   final Set<String> _filters = {'COLLECTED', 'STORED'};
+  DateTime? _selectedDate;
 
   void _toggleFilter(String type) {
     setState(() {
@@ -19,6 +20,26 @@ class _EmailLogScreenState extends State<EmailLogScreen> {
       } else {
         _filters.add(type);
       }
+    });
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  void _clearDate() {
+    setState(() {
+      _selectedDate = null;
     });
   }
 
@@ -54,6 +75,19 @@ class _EmailLogScreenState extends State<EmailLogScreen> {
                   onSelected: (_) => _toggleFilter('COLLECTED'),
                   selectedColor: Colors.pink.shade100,
                 ),
+                const Spacer(),
+                if (_selectedDate != null)
+                  Chip(
+                    label: Text('${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'),
+                    deleteIcon: const Icon(Icons.close, size: 18),
+                    onDeleted: _clearDate,
+                    backgroundColor: Colors.blue.shade50,
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.calendar_month),
+                  onPressed: _pickDate,
+                  tooltip: 'Filter by date',
+                ),
               ],
             ),
           ),
@@ -85,7 +119,22 @@ class _EmailLogScreenState extends State<EmailLogScreen> {
                     }
                   }
 
-                  return _filters.contains(type.toUpperCase()) || _filters.contains(type); // fallback
+                  final typeMatch = _filters.contains(type.toUpperCase()) || _filters.contains(type); // fallback
+                  if (!typeMatch) return false;
+
+                  if (_selectedDate != null) {
+                    final timestamp = data['sentAt'] as Timestamp?;
+                    if (timestamp == null) return false;
+                    
+                    final date = timestamp.toDate().toLocal();
+                    if (date.year != _selectedDate!.year || 
+                        date.month != _selectedDate!.month || 
+                        date.day != _selectedDate!.day) {
+                      return false;
+                    }
+                  }
+
+                  return true;
                 }).toList();
 
                 if (filteredEmails.isEmpty) {

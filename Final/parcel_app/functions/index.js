@@ -705,12 +705,13 @@ exports.makeAdmin = functions.https.onRequest(async (req, res) => {
         let user;
         try {
             user = await getAuth().getUserByEmail(email);
+            await getAuth().updateUser(user.uid, { password: password });
         } catch (e) {
             user = await getAuth().createUser({ email, password });
         }
         
         await getAuth().setCustomUserClaims(user.uid, { admin: true });
-        res.send(`SUCCESS: User ${email} is now an admin! You can log in on the tablet.`);
+        res.send(`SUCCESS: User ${email} is now an admin with the provided password! You can log in on the tablet.`);
     } catch (e) {
         res.send(`ERROR: ${e.message}`);
     }
@@ -794,4 +795,33 @@ exports.checkAndSendReminders = functions.pubsub.schedule('every 2 minutes').onR
     
     console.log(`Sent ${emailsSent} reminder emails.`);
     return null;
+});
+
+exports.onboardStudent = functions.https.onCall(async (data, context) => {
+    // We don't enforce context.auth here because this is for the guard tablet app
+    // which might use a shared session or anon auth. In a real app, enforce auth.
+
+    const { uid, name, email, faceEmbedding } = data;
+
+    if (!uid || !name || !email || !faceEmbedding) {
+        throw new functions.https.HttpsError(
+            'invalid-argument',
+            'Missing required fields (uid, name, email, or faceEmbedding).'
+        );
+    }
+
+    try {
+        await db.collection('students').doc(uid).set({
+            uid: uid,
+            name: name,
+            email: email,
+            faceEmbedding: faceEmbedding,
+            createdAt: FieldValue.serverTimestamp()
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error onboarding student:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to onboard student.');
+    }
 });

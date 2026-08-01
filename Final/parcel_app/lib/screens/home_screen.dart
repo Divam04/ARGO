@@ -14,6 +14,7 @@ import 'scan_label_screen.dart';
 import 'parcel_details_screen.dart';
 import 'enter_pin_screen.dart';
 import 'settings_screen.dart';
+import 'onboard_student_screen.dart';
 import '../services/guard_session.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -469,6 +470,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 children: [
                   Expanded(
+                    flex: 17,
                     child: Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
@@ -562,6 +564,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 24),
                   Expanded(
+                    flex: 17,
                     child: GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -596,6 +599,52 @@ class _HomeScreenState extends State<HomeScreen> {
                               'Enter Collection PIN',
                               style: TextStyle(
                                 color: AppColors.primary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    flex: 6,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const OnboardStudentScreen()),
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryDark,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(
+                                Icons.person_add_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            const Text(
+                              'Onboard New Student',
+                              style: TextStyle(
+                                color: Colors.white,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                               ),

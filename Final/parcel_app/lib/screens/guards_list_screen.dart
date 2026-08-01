@@ -110,7 +110,11 @@ class GuardsListScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator(color: AppColors.primary));
           }
 
-          final guards = snapshot.data?.docs ?? [];
+          final allGuards = snapshot.data?.docs ?? [];
+          final guards = allGuards.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return data['active'] != false;
+          }).toList();
           
           if (guards.isEmpty) {
             return const Center(child: Text('No guards found.', style: TextStyle(fontSize: 18)));

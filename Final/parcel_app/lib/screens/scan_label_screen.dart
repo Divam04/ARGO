@@ -87,13 +87,15 @@ class _ScanLabelScreenState extends State<ScanLabelScreen> {
                     height: 150,
                     child: Lottie.asset('assets/cart_loading.json'),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Processing parcel...',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                  Transform.translate(
+                    offset: const Offset(20, -15),
+                    child: const Text(
+                      'Processing parcel...',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
