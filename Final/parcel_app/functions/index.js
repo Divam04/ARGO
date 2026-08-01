@@ -511,17 +511,42 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
     const crypto = require('crypto');
     const pinHash = crypto.createHash('sha256').update(pin).digest('hex');
     
-    const parcelRef = await db.collection('parcels').add({
-        deliveryService,
-        recipientName,
-        trackingNumber,
-        rack,
-        pin,
-        pinHash,
-        status: 'stored',
-        receivedAt: FieldValue.serverTimestamp(),
-        studentUid: studentUid,
-        studentName: studentName
+    const currentMonthStr = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    let sequenceNumber = 1;
+    let parcelId = '';
+    
+    await db.runTransaction(async (transaction) => {
+        const configRef = db.collection('config').doc('parcelSequence');
+        const configDoc = await transaction.get(configRef);
+        
+        if (configDoc.exists) {
+            const data = configDoc.data();
+            if (data.currentMonth === currentMonthStr) {
+                sequenceNumber = (data.lastSequenceNumber || 0) + 1;
+            }
+        }
+        
+        transaction.set(configRef, {
+            currentMonth: currentMonthStr,
+            lastSequenceNumber: sequenceNumber
+        });
+        
+        const newParcelRef = db.collection('parcels').doc();
+        parcelId = newParcelRef.id;
+        
+        transaction.set(newParcelRef, {
+            deliveryService,
+            recipientName,
+            trackingNumber,
+            rack,
+            monthlySequenceNumber: sequenceNumber,
+            pin,
+            pinHash,
+            status: 'stored',
+            receivedAt: FieldValue.serverTimestamp(),
+            studentUid: studentUid,
+            studentName: studentName
+        });
     });
 
     let guardName = guardId || 'Unknown Guard';
@@ -589,7 +614,7 @@ exports.commitParcel = functions.https.onCall(async (data, context) => {
             sentAt: FieldValue.serverTimestamp()
         });
 
-    return { success: true, parcelId: parcelRef.id, pin, emailSentTo: toEmail };
+    return { success: true, parcelId: parcelId, pin, emailSentTo: toEmail, sequenceNumber };
 });
 
 exports.dashboardStats = functions.https.onCall(async (data, context) => {
@@ -648,6 +673,7 @@ exports.dashboardStats = functions.https.onCall(async (data, context) => {
                     trackingNumber: p.trackingNumber || 'N/A',
                     recipientName: p.recipientNameRaw || p.studentName || 'Unknown',
                     rack: p.rack || 'Unassigned',
+                    monthlySequenceNumber: p.monthlySequenceNumber || null,
                     receivedAt: p.receivedAt ? p.receivedAt.toDate().toISOString() : null
                 });
             }

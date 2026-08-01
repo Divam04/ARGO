@@ -283,7 +283,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     leading: const CircleAvatar(backgroundColor: Colors.orange, child: Icon(Icons.inventory_2, color: Colors.white)),
                     title: Text('${p['recipientName']} • ${p['deliveryService']}'),
                     subtitle: Text('AWB: ${p['trackingNumber']} • Received: ${p['receivedAt']?.toString().substring(0, 10)}'),
-                    trailing: Text(p['rack'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    trailing: Text(
+                      '#${p['monthlySequenceNumber'] ?? '?'} (Rack ${p['rack'] ?? ''})', 
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                    ),
                   ),
                 ),
               );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'parcel_handed_over_screen.dart';
 
 class ManualVerificationScreen extends StatefulWidget {
@@ -19,6 +20,21 @@ class ManualVerificationScreen extends StatefulWidget {
 }
 
 class _ManualVerificationScreenState extends State<ManualVerificationScreen> {
+
+  Future<String?> _getPhotoUrl(String uid) async {
+    final storage = FirebaseStorage.instance;
+    final extensions = ['.jpeg', '.jpg', '.png'];
+    
+    for (var ext in extensions) {
+      try {
+        final url = await storage.ref('faces/$uid$ext').getDownloadURL();
+        return url;
+      } catch (e) {
+        continue;
+      }
+    }
+    return null;
+  }
 
   void _verifyAndProceed() {
     Navigator.pushReplacement(
@@ -55,16 +71,27 @@ class _ManualVerificationScreenState extends State<ManualVerificationScreen> {
       body: Column(
         children: [
           Expanded(
-            child: Image.asset(
-              'assets/faces/${widget.receiverDoc.id}.jpeg',
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const Center(
-                child: Text(
-                  'Could not load student photo from local assets.',
-                  style: TextStyle(color: Colors.red, fontSize: 18),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+            child: FutureBuilder<String?>(
+              future: _getPhotoUrl(widget.receiverDoc.id),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.white));
+                }
+                if (snapshot.hasData && snapshot.data != null) {
+                  return Image.network(
+                    snapshot.data!,
+                    fit: BoxFit.contain,
+                  );
+                } else {
+                  return const Center(
+                    child: Text(
+                      'Could not load student photo from Firebase Storage.',
+                      style: TextStyle(color: Colors.red, fontSize: 18),
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+              },
             ),
           ),
           Container(

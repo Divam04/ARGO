@@ -5,7 +5,8 @@ import 'admin_menu_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminLoginScreen extends StatefulWidget {
-  const AdminLoginScreen({super.key});
+  final Widget? targetScreen;
+  const AdminLoginScreen({super.key, this.targetScreen});
 
   @override
   State<AdminLoginScreen> createState() => _AdminLoginScreenState();
@@ -70,7 +71,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const AdminMenuScreen()),
+        MaterialPageRoute(builder: (context) => widget.targetScreen ?? const AdminMenuScreen()),
       );
     } on FirebaseAuthException catch (e) {
       setState(() {

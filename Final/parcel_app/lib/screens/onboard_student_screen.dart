@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:lottie/lottie.dart';
 import '../theme/app_colors.dart';
 import '../services/face_recognition_service.dart';
@@ -99,6 +100,16 @@ class _OnboardStudentScreenState extends State<OnboardStudentScreen> {
         'email': _emailController.text.trim(),
         'faceEmbedding': embedding,
       });
+
+      setState(() => _statusText = 'Uploading photo...');
+
+      // 3. Upload the raw image to Storage for manual verification
+      final uid = _uidController.text.trim();
+      final storageRef = FirebaseStorage.instance.ref().child('faces/$uid.jpg');
+      await storageRef.putFile(
+        _imageFile!,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
 
       if (!mounted) return;
       

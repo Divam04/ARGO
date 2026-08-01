@@ -32,7 +32,7 @@ class _ParcelRecordedScreenState extends State<ParcelRecordedScreen> {
     setState(() => _isCommitting = true);
 
     try {
-      await FirebaseFunctions.instance.httpsCallable('commitParcel').call({
+      final result = await FirebaseFunctions.instance.httpsCallable('commitParcel').call({
         'deliveryService': widget.deliveryService,
         'recipientName': widget.recipientName,
         'trackingNumber': widget.trackingNumber,
@@ -43,15 +43,56 @@ class _ParcelRecordedScreenState extends State<ParcelRecordedScreen> {
 
       if (!mounted) return;
       
-      // Pop all screens up to home
-      Navigator.popUntil(context, ModalRoute.withName('/home'));
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Parcel successfully recorded! Email queued.'),
-          backgroundColor: AppColors.success,
+      final sequenceNumber = result.data['sequenceNumber'];
+
+      // Show dialog with sequence number before popping
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Parcel Recorded!', textAlign: TextAlign.center, style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Please write this ID on the parcel:', textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary, width: 2),
+                ),
+                child: Text(
+                  '#$sequenceNumber (Rack ${widget.assignedRack})',
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text('The student has been notified.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('DONE', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
         ),
       );
+
+      if (!mounted) return;
+      Navigator.popUntil(context, ModalRoute.withName('/home'));
+      
     } catch (e) {
       if (!mounted) return;
       setState(() => _isCommitting = false);

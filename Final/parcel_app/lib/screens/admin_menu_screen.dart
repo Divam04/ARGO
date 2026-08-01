@@ -7,6 +7,8 @@ import 'bulk_enrol_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
+import 'student_database_screen.dart';
+
 class AdminMenuScreen extends StatelessWidget {
   const AdminMenuScreen({super.key});
 
@@ -172,7 +174,34 @@ class AdminMenuScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 64,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const StudentDatabaseScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.people_alt, color: Colors.white, size: 28),
+                      label: const Text(
+                        'STUDENT DATABASE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
