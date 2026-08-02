@@ -220,7 +220,8 @@ exports.resolvePin = functions.https.onCall(async (data, context) => {
         trackingNumber: parcelData.trackingNumber || null,
         rack: parcelData.rack || parcelData.rackId || null,
         studentUid: parcelData.studentUid || null,
-        studentName: parcelData.studentName || null
+        studentName: parcelData.studentName || null,
+        monthlySequenceNumber: parcelData.monthlySequenceNumber || null
     };
 });
 

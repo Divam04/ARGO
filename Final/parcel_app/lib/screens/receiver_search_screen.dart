@@ -135,6 +135,26 @@ class _ReceiverSearchScreenState extends State<ReceiverSearchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Handing over Parcel #${widget.parcelData['monthlySequenceNumber'] ?? '?'}', 
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
+                    const SizedBox(height: 8),
+                    Text('${widget.parcelData['deliveryService'] ?? 'Unknown Courier'} • AWB: ${widget.parcelData['trackingNumber'] ?? 'N/A'}', 
+                      style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(

@@ -145,6 +145,82 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _resendEmail(DocumentSnapshot parcelDoc) async {
+    final p = parcelDoc.data() as Map<String, dynamic>;
+    if (_selectedStudent == null) return;
+    final studentData = _selectedStudent!.data() as Map<String, dynamic>;
+    final toEmail = studentData['email'];
+    if (toEmail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No email found for student')));
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final deliveryService = p['deliveryService'] ?? 'Unknown Courier';
+      final trackingNumber = p['trackingNumber'] ?? 'N/A';
+      final studentName = studentData['name'] ?? 'Student';
+      final pin = p['pin'] ?? 'Unknown';
+
+      final text = 'Hello $studentName,\n\nThis is a reminder that your parcel from $deliveryService is waiting at Gate 1.\n\nAWB: $trackingNumber\nCourier: $deliveryService\n\nYour collection PIN is: $pin\n\nPlease collect it at your earliest convenience.';
+
+      final html = '''
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+          <div style="background-color: #28a745; color: white; padding: 16px; text-align: center;">
+              <h2 style="margin: 0;">Parcel Reminder</h2>
+          </div>
+          <div style="padding: 24px;">
+              <p>Hello $studentName,</p>
+              <p>This is a reminder that your parcel is waiting at <strong>Gate 1</strong>.</p>
+              
+              <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                  <tr style="border-bottom: 1px solid #eee;">
+                      <td style="padding: 12px 0; color: #666;"><strong>Courier:</strong></td>
+                      <td style="padding: 12px 0; text-align: right;">$deliveryService</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid #eee;">
+                      <td style="padding: 12px 0; color: #666;"><strong>AWB:</strong></td>
+                      <td style="padding: 12px 0; text-align: right;">$trackingNumber</td>
+                  </tr>
+              </table>
+              
+              <div style="margin-top: 32px; background-color: #f8f9fa; padding: 16px; text-align: center; border-radius: 8px;">
+                  <p style="margin: 0; color: #666; font-size: 14px;">Your Collection PIN</p>
+                  <h1 style="margin: 8px 0 0 0; letter-spacing: 4px; color: #0d6efd;">$pin</h1>
+              </div>
+              
+              <p style="margin-top: 24px; color: #666; font-size: 14px; text-align: center;">Please collect it at your earliest convenience.</p>
+          </div>
+      </div>
+      ''';
+
+      await FirebaseFirestore.instance.collection('emails').add({
+        'type': 'REMINDER',
+        'to': toEmail,
+        'subject': 'Reminder: Your parcel from $deliveryService is waiting!',
+        'text': text,
+        'html': html,
+        'status': 'pending',
+        'sentAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reminder email sent successfully!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send email: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -419,17 +495,36 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 8),
                     Text('Parcel No: ${p['monthlySequenceNumber'] ?? 'N/A'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
                     const Spacer(),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade700,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 56,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange.shade600,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () => _resendEmail(parcelDoc),
+                              child: const Text('RESEND EMAIL', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                            ),
+                          ),
                         ),
-                        onPressed: () => _handoverParcel(parcelDoc),
-                        child: const Text('HANDOVER', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 56,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade700,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () => _handoverParcel(parcelDoc),
+                              child: const Text('HANDOVER', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -55,7 +55,7 @@ class ParcelScreen extends StatelessWidget {
               if (parcelData['trackingNumber'] != null && parcelData['trackingNumber'].toString().isNotEmpty)
                 _buildDetailRow('TRACKING NO.', parcelData['trackingNumber']),
               const Divider(height: 32),
-              _buildDetailRow('LOCATION', parcelData['rack'] ?? 'Unknown Rack'),
+              _buildDetailRow('LOCATION', '${parcelData['rack'] ?? 'Unknown Rack'} (Parcel #${parcelData['monthlySequenceNumber'] ?? '?'})'),
               const SizedBox(height: 32),
               Row(
                 children: [
